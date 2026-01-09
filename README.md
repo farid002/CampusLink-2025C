@@ -1,10 +1,6 @@
 
 # CampusLink — Kampus Birliyi Platforması
 
-
-> **Dərs istifadəsi üçün:** İstədiyiniz faylların içini boşaldıb (kod hissələrini silib) *yalnız şərhləri saxlaya bilərsiniz*.
-Şərhlər hər funksiyanın **məqsədini, giriş/çıxışlarını, addım-addım nə etməli olduğunu** izah edir.
-
 ## 🔧 Quraşdırma
 
 ```bash
@@ -40,14 +36,6 @@ CampusLink/
  ├─ templates/...
  └─ static/...
 ```
-
-## 🗄 Verilənlər bazası (yeniləmələr)
-- `blog_posts`: `is_published INTEGER DEFAULT 1`, `slug TEXT UNIQUE`
-- `events`: `capacity INTEGER DEFAULT 100`
-- `forum_topics`: `is_pinned INTEGER DEFAULT 0`, `likes INTEGER DEFAULT 0`
-- `gallery_images`: dəyişiklik yoxdur
-- `polls`: `is_closed INTEGER DEFAULT 0`
-- `feedback`: `status TEXT DEFAULT 'pending'` (mövcuddur)
 
 ## 👩‍💻 Tapşırıqlar və öyrənmə məqsədləri
 Hər modul faylında **docstring** və funksiyaların başında **maddələnmiş izahlar** var. Bunlar tələbənin:
