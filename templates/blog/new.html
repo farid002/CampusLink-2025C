@@ -1,25 +1,29 @@
-
 {% extends "base.html" %}
 {% block title %}Yeni yazı — Blog — CampusLink{% endblock %}
 {% block content %}
   <h2>Yeni yazı</h2>
-  <form method="post">
+  
+  <form method="post" action="{{ url_for('blog.new_post') }}">
     <div class="mb-3">
-      <label class="form-label">Başlıq</label>
-      <input name="title" class="form-control" required>
+      <label class="form-label">Başlıq <span class="text-danger">*</span></label>
+      <input name="title" class="form-control" value="{{ title or '' }}" required>
     </div>
     <div class="mb-3">
       <label class="form-label">Teqlər (sətirlə, vergüllə və ya boş)</label>
-      <input name="tags" class="form-control">
+      <input name="tags" class="form-control" value="{{ tags or '' }}" placeholder="məs., flask,python,workshop">
+      <small class="form-text text-muted">Teqləri vergüllə ayırın</small>
     </div>
     <div class="mb-3">
-      <label class="form-label">Məzmun</label>
-      <textarea name="content" class="form-control" rows="8" required></textarea>
+      <label class="form-label">Məzmun <span class="text-danger">*</span></label>
+      <textarea name="content" class="form-control" rows="8" required>{{ content or '' }}</textarea>
     </div>
     <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" id="ispub" name="is_published" checked>
+      <input class="form-check-input" type="checkbox" id="ispub" name="is_published" {% if is_published is not defined or is_published != 0 %}checked{% endif %}>
       <label class="form-check-label" for="ispub">Dərc olunsun</label>
     </div>
-    <button class="btn btn-primary">Yarat</button>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Yarat</button>
+      <a href="{{ url_for('blog.list_posts') }}" class="btn btn-outline-secondary">Ləğv et</a>
+    </div>
   </form>
 {% endblock %}

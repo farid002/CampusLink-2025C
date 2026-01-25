@@ -13,8 +13,8 @@ Yeni imkanlar:
 **Qeyd** Hər funksiyanın docstring-i addım-addım nə edilməli olduğunu təsvir edir.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from database import get_db, paginate_query
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from database import get_db, paginate_query, dict_from_row
 import datetime, re
 
 bp = Blueprint("blog", __name__, url_prefix="/blog")
@@ -67,8 +67,56 @@ def list_posts():
 
     Qeyd: Hal-hazırda funksiya yalnız boş şablonu qaytarır.
     """
-
-    return render_template("blog/list.html")
+    db = get_db()
+    
+    # Query parametrlərini al
+    q = request.args.get("q", "").strip()
+    tag = request.args.get("tag", "").strip()
+    published = request.args.get("published", "").strip()
+    page = request.args.get("page", "1", type=int)
+    
+    # Dinamik WHERE şərtləri qurmaq
+    where_conditions = ["1=1"]
+    params = []
+    
+    # Axtarış (q parametri)
+    if q:
+        where_conditions.append("(title LIKE ? OR content LIKE ?)")
+        search_term = f"%{q}%"
+        params.extend([search_term, search_term])
+    
+    # Teq filtr
+    if tag:
+        where_conditions.append("tags LIKE ?")
+        params.append(f"%{tag}%")
+    
+    # Dərc statusu filtr
+    if published == "1":
+        where_conditions.append("is_published = ?")
+        params.append(1)
+    elif published == "0":
+        where_conditions.append("is_published = ?")
+        params.append(0)
+    
+    # SQL sorğusu qurmaq
+    base_sql = f"SELECT * FROM blog_posts WHERE {' AND '.join(where_conditions)} ORDER BY created_at DESC"
+    
+    # Səhifələmə
+    sql, limit, offset = paginate_query(base_sql, page, 5)
+    
+    # Sorğunu icra etmək
+    cursor = db.execute(sql, (*params, limit, offset))
+    posts = cursor.fetchall()
+    
+    # Dict-ə çevirmək (şablon üçün)
+    posts_list = [dict_from_row(row) for row in posts]
+    
+    return render_template("blog/list.html", 
+                         posts=posts_list, 
+                         q=q, 
+                         tag=tag, 
+                         published=published, 
+                         page=page)
 
 @bp.route("/<slug>")
 def show_post(slug: str):
@@ -94,10 +142,18 @@ def show_post(slug: str):
 
     Qeyd: hazırda funksiya yalnız boş şablon qaytarır.
     """
-    return render_template("blog/detail.html")
+    db = get_db()
+    cursor = db.execute("SELECT * FROM blog_posts WHERE slug = ?", (slug,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return render_template("404.html"), 404
+    
+    post = dict_from_row(row)
+    return render_template("blog/detail.html", post=post)
 
 @bp.route("/<int:post_id>")
-def show_post_by_id(post_id: int):
+def detail(post_id: int):
     """
     Verilmiş **ID** əsasında blog yazısını göstərən səhifə.
 
@@ -120,7 +176,15 @@ def show_post_by_id(post_id: int):
 
     Qeyd: hazırda funksiya yalnız boş şablon qaytarır.
     """
-    return render_template("blog/detail.html")
+    db = get_db()
+    cursor = db.execute("SELECT * FROM blog_posts WHERE id = ?", (post_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return render_template("404.html"), 404
+    
+    post = dict_from_row(row)
+    return render_template("blog/detail.html", post=post)
 
 @bp.route("/new", methods=["GET", "POST"])
 def new_post():
@@ -172,7 +236,56 @@ def new_post():
 
     Qeyd: Hal-hazırda funksiya **yalnız boş form şablonunu qaytarır**; bütün emal məntiqi tələbə tərəfindən yazılmalıdır.
     """
-
+    if request.method == "POST":
+        # Form dəyərlərini oxumaq
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        tags = request.form.get("tags", "").strip()
+        is_published = 1 if request.form.get("is_published") == "on" else 0
+        
+        # Validasiya
+        if not title:
+            flash("Başlıq məcburidir.")
+            return render_template("blog/new.html", 
+                                 title=title, 
+                                 content=content, 
+                                 tags=tags, 
+                                 is_published=is_published)
+        
+        if not content:
+            flash("Məzmun məcburidir.")
+            return render_template("blog/new.html", 
+                                 title=title, 
+                                 content=content, 
+                                 tags=tags, 
+                                 is_published=is_published)
+        
+        # Slug yaratmaq
+        slug = slugify(title)
+        
+        # Slug unikallığını yoxlamaq və lazım olduqda rəqəm əlavə etmək
+        db = get_db()
+        base_slug = slug
+        counter = 1
+        while True:
+            cursor = db.execute("SELECT id FROM blog_posts WHERE slug = ?", (slug,))
+            if not cursor.fetchone():
+                break
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        
+        # DB-yə yazmaq
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        db.execute(
+            "INSERT INTO blog_posts (title, content, tags, created_at, is_published, slug) VALUES (?, ?, ?, ?, ?, ?)",
+            (title, content, tags if tags else None, created_at, is_published, slug)
+        )
+        db.commit()
+        
+        flash("Yazı uğurla yaradıldı!")
+        return redirect(url_for("blog.list_posts"))
+    
+    # GET sorğusu - formu göstərmək
     return render_template("blog/new.html")
 
 @bp.route("/<int:post_id>/edit", methods=["GET", "POST"])
@@ -228,7 +341,54 @@ def edit(post_id: int):
 
     Qeyd: Hal-hazırda funksiya **yalnız boş form şablonunu** qaytarır; bütün emal məntiqi tələbə tərəfindən yazılmalıdır.
     """
-    return render_template("blog/edit.html")
+    db = get_db()
+    
+    # Admin parolu yoxlamaq
+    password = request.args.get("password", "")
+    if password != ADMIN_PASS:
+        return render_template("blog/edit.html", error="Admin parolu səhvdir."), 403
+    
+    # Mövcud postu gətirmək
+    cursor = db.execute("SELECT * FROM blog_posts WHERE id = ?", (post_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        return render_template("404.html"), 404
+    
+    post = dict_from_row(row)
+    
+    if request.method == "POST":
+        # Form dəyərlərini oxumaq
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        tags = request.form.get("tags", "").strip()
+        is_published = 1 if request.form.get("is_published") == "on" else 0
+        
+        # Validasiya
+        if not title or not content:
+            error = "Başlıq və məzmun məcburidir."
+            # Form dəyərlərini geri qaytarmaq
+            post_data = {
+                "id": post_id,
+                "title": title,
+                "content": content,
+                "tags": tags,
+                "is_published": is_published
+            }
+            return render_template("blog/edit.html", post=post_data, error=error)
+        
+        # DB-yə yeniləmə
+        db.execute(
+            "UPDATE blog_posts SET title=?, content=?, tags=?, is_published=? WHERE id=?",
+            (title, content, tags if tags else None, is_published, post_id)
+        )
+        db.commit()
+        
+        flash("Yazı uğurla yeniləndi!")
+        return redirect(url_for("blog.detail", post_id=post_id))
+    
+    # GET sorğusu - formu ilkin dəyərlərlə göstərmək
+    return render_template("blog/edit.html", post=post, error=None)
 
 @bp.route("/<int:post_id>/delete")
 def delete(post_id: int):
@@ -261,3 +421,21 @@ def delete(post_id: int):
 
     Qeyd: Hal-hazırda funksiya yalnız boş şablon qaytarır; tələbə öz məntiqini əlavə etməlidir.
     """
+    # Admin parolu yoxlamaq
+    password = request.args.get("password", "")
+    if password != ADMIN_PASS:
+        return render_template("404.html", error="İcazə yoxdur."), 403
+    
+    db = get_db()
+    
+    # Yazının mövcudluğunu yoxlamaq
+    cursor = db.execute("SELECT id FROM blog_posts WHERE id = ?", (post_id,))
+    if not cursor.fetchone():
+        return render_template("404.html"), 404
+    
+    # Yazını silmək
+    db.execute("DELETE FROM blog_posts WHERE id = ?", (post_id,))
+    db.commit()
+    
+    flash("Yazı uğurla silindi!")
+    return redirect(url_for("blog.list_posts"))
