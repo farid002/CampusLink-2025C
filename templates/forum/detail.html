@@ -2,27 +2,72 @@
 {% extends "base.html" %}
 {% block title %}{{ topic["title"] }} — Forum — CampusLink{% endblock %}
 {% block content %}
-  <h2>{{ topic["title"] }}</h2>
-  <div class="text-muted mb-3">{{ topic["author"] }} — {{ topic["created_at"] }}</div>
-  <p style="white-space: pre-wrap;">{{ topic["content"] }}</p>
-  <p><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.like', topic_id=topic['id']) }}">Bəyən ({{ topic['likes'] }})</a>
-     <a class="btn btn-sm btn-outline-warning" href="{{ url_for('forum.pin', topic_id=topic['id']) }}?password=admin123">Pin</a></p>
-  <hr>
-  <h5>Cavablar</h5>
-  <ul class="list-unstyled">
-    {% for r in replies %}
-      <li class="mb-2"><strong>{{ r["author"] }}</strong>: {{ r["content"] }} <span class="text-muted small">— {{ r["created_at"] }}</span></li>
-    {% else %}
-      <li>Hələ cavab yoxdur.</li>
-    {% endfor %}
-  </ul>
-  <hr>
-  <h5>Cavab yaz</h5>
-  <form method="post">
-    <div class="row g-2">
-      <div class="col-md-3"><input name="author" class="form-control" placeholder="Adınız" required></div>
-      <div class="col-md-9"><input name="content" class="form-control" placeholder="Cavabınız" required></div>
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+    <div>
+      <h2 class="mb-1">
+        {% if topic["pinned"] %}<span class="badge bg-warning text-dark me-1">Pinned</span>{% endif %}
+        {{ topic["title"] }}
+      </h2>
+      <div class="text-muted">{{ topic["author"] }} — {{ topic["created_at"] }}</div>
+      <div class="text-muted small">
+        User: <strong>{{ current_user }}</strong>
+        {% if is_admin %}<span class="badge bg-warning text-dark ms-2">Admin</span>{% endif %}
+      </div>
     </div>
-    <button class="btn btn-primary mt-2">Göndər</button>
+    <div class="text-end">
+      <div class="d-flex gap-2 justify-content-end">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.user_view', next=next_url) }}">User</a>
+        <a class="btn btn-sm btn-outline-warning" href="{{ url_for('forum.admin_view', next=next_url) }}">Admin</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div style="white-space: pre-wrap;">{{ topic["content"] }}</div>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-4">
+    <div class="text-muted">Likes: <strong>{{ topic["likes"] }}</strong></div>
+    <form method="POST" action="/forum/like/{{ topic['id'] }}" class="d-inline">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <button class="btn btn-sm btn-outline-primary" type="submit">👍 Like</button>
+    </form>
+    {% if is_admin %}
+      <form method="POST" action="/forum/pin/{{ topic['id'] }}" class="d-inline">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {% if topic["pinned"] %}
+          <button class="btn btn-sm btn-outline-warning" type="submit">Unpin</button>
+        {% else %}
+          <button class="btn btn-sm btn-outline-warning" type="submit">Pin</button>
+        {% endif %}
+      </form>
+    {% endif %}
+  </div>
+
+  <h5 class="mb-3">Replies</h5>
+  {% for r in replies %}
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <strong>{{ r["author"] }}</strong>
+          <span class="text-muted small">{{ r["created_at"] }}</span>
+        </div>
+        <div class="mt-2" style="white-space: pre-wrap;">{{ r["content"] }}</div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-light border">No replies yet.</div>
+  {% endfor %}
+
+  <hr class="my-4">
+  <h5 class="mb-3">Reply</h5>
+  <form method="POST" action="/forum/{{ topic['id'] }}">
+    <div class="mb-3">
+      <textarea name="content" class="form-control" rows="4" placeholder="Write your reply..." required></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">Reply</button>
   </form>
 {% endblock %}
