@@ -2,21 +2,20 @@
 {% extends "base.html" %}
 {% block title %}Yeni mövzu — Forum — CampusLink{% endblock %}
 {% block content %}
-  <h2>Yeni mövzu</h2>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">New Topic</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back</a>
+  </div>
   {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-  <form method="post">
+  <form method="POST" action="/forum/new">
     <div class="mb-3">
-      <label class="form-label">Başlıq</label>
-      <input name="title" class="form-control" required>
+      <label class="form-label">Title</label>
+      <input name="title" class="form-control" minlength="3" value="{{ title or '' }}" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">Müəllif</label>
-      <input name="author" class="form-control" required>
+      <label class="form-label">Content</label>
+      <textarea name="content" class="form-control" rows="8" minlength="10" required>{{ content or '' }}</textarea>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Məzmun</label>
-      <textarea name="content" class="form-control" rows="6" required></textarea>
-    </div>
-    <button class="btn btn-primary">Yarat</button>
+    <button class="btn btn-primary" type="submit">Create</button>
   </form>
 {% endblock %}

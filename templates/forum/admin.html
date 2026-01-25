@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Forum Admin — CampusLink{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Forum Admin</h2>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="text-muted small">User: <strong>{{ current_user }}</strong></span>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back to Forum</a>
+    </div>
+  </div>
+
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+  {% if not is_admin %}
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Admin Login</h5>
+        <form method="POST" action="{{ url_for('forum.admin_view') }}">
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <div class="mb-3">
+            <label class="form-label">Admin password</label>
+            <input name="password" type="password" class="form-control" placeholder="Enter admin password" required>
+          </div>
+          <button class="btn btn-warning" type="submit">Enable Admin Mode</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <form method="GET" action="{{ url_for('forum.admin_view') }}" class="d-flex gap-2">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <input class="form-control" name="q" placeholder="Search topics..." value="{{ q or '' }}">
+        <button class="btn btn-secondary" type="submit">Search</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('forum.admin_view', next=next_url) }}">Clear</a>
+      </form>
+      <form method="POST" action="{{ url_for('forum.admin_logout') }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn btn-outline-danger" type="submit">Disable Admin</button>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Created</th>
+            <th>Likes</th>
+            <th>Pinned</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in topics %}
+            <tr>
+              <td>
+                {% if t["pinned"] %}<span class="badge bg-warning text-dark me-1">Pinned</span>{% endif %}
+                <a href="{{ url_for('forum.detail', topic_id=t['id']) }}">{{ t["title"] }}</a>
+              </td>
+              <td>{{ t["author"] }}</td>
+              <td class="text-muted small">{{ t["created_at"] }}</td>
+              <td>{{ t["likes"] }}</td>
+              <td>{% if t["pinned"] %}Yes{% else %}No{% endif %}</td>
+              <td class="text-end">
+                <form method="POST" action="/forum/pin/{{ t['id'] }}" class="d-inline">
+                  <input type="hidden" name="next" value="{{ url_for('forum.admin_view', q=q, next=next_url) }}">
+                  {% if t["pinned"] %}
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Unpin</button>
+                  {% else %}
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Pin</button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-muted">No topics found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}
