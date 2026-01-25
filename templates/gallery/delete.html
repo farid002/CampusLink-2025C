@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Şəkli sil — Qalereya — CampusLink{% endblock %}
+{% block content %}
+  <h2>Əminsiniz?</h2>
+  <p>"{{ img['title'] }}" şəklini silmək istədiyinizə əminsiniz?</p>
+  <form method="post" action="{{ url_for('gallery.delete', image_id=image_id) }}">
+    <input type="hidden" name="password" value="{{ password or '' }}">
+    <button type="submit" class="btn btn-danger">Sil</button>
+    <a class="btn btn-secondary" href="{{ url_for('gallery.detail', image_id=image_id) }}">Geri</a>
+  </form>
+{% endblock %}
