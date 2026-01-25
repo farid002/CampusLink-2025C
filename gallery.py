@@ -16,7 +16,7 @@ Təhlükəsizlik qeydi:
 - templates/gallery/upload.html
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, abort
 from database import get_db
 import os, datetime, secrets
 
@@ -65,7 +65,17 @@ def grid():
 
     Qeyd: Skeleton olaraq hazırda yalnız şablonu qaytarır.
     """
-    return render_template("gallery/list.html")
+    uploader = (request.args.get("uploader") or "").strip()
+    db = get_db()
+    if uploader:
+        cur = db.execute(
+            "SELECT * FROM gallery_images WHERE uploader LIKE ? ORDER BY id DESC",
+            ("%" + uploader + "%",),
+        )
+    else:
+        cur = db.execute("SELECT * FROM gallery_images ORDER BY id DESC")
+    images = cur.fetchall()
+    return render_template("gallery/list.html", images=images, uploader=uploader)
 
 
 @bp.route("/<int:image_id>")
@@ -89,7 +99,12 @@ def detail(image_id: int):
 
     Qeyd: Skeleton olaraq hazırda yalnız şablonu qaytarır.
     """
-    return render_template("gallery/detail.html")
+    db = get_db()
+    cur = db.execute("SELECT * FROM gallery_images WHERE id = ?", (image_id,))
+    img = cur.fetchone()
+    if img is None:
+        return render_template("404.html"), 404
+    return render_template("gallery/detail.html", img=img)
 
 
 @bp.route("/<int:image_id>/delete", methods=["GET", "POST"])
@@ -122,6 +137,33 @@ def delete(image_id: int):
          - **POST**-la silmək daha düzgündür.
 
     """
+    password = (request.args.get("password") or request.form.get("password") or "").strip()
+    if password != ADMIN_PASS:
+        abort(403)
+
+    db = get_db()
+    cur = db.execute("SELECT * FROM gallery_images WHERE id = ?", (image_id,))
+    img = cur.fetchone()
+    if img is None:
+        return render_template("404.html"), 404
+
+    if request.method == "POST":
+        filename = img["filename"]
+        path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        db.execute("DELETE FROM gallery_images WHERE id = ?", (image_id,))
+        db.commit()
+        return redirect(url_for("gallery.grid"))
+
+    return render_template(
+        "gallery/delete.html",
+        img=img,
+        image_id=image_id,
+        password=request.args.get("password", ""),
+    )
 
 
 @bp.route("/upload", methods=["GET", "POST"])
@@ -174,4 +216,39 @@ def upload():
 
     Qeyd: Skeleton olaraq hazırda yalnız şablonu qaytarır.
     """
-    return render_template("gallery/upload.html")
+    if request.method == "GET":
+        return render_template("gallery/upload.html")
+
+    file = request.files.get("file")
+    title = (request.form.get("title") or "").strip() or "Başlıqsız"
+    uploader = (request.form.get("uploader") or "").strip() or "Anonim"
+
+    if not file or not file.filename:
+        flash("Zəhmət olmasa şəkil faylı yükləyin (png, jpg, jpeg, gif, webp).")
+        return redirect(url_for("gallery.upload"))
+    if not allowed(file.filename):
+        flash("Zəhmət olmasa şəkil faylı yükləyin (png, jpg, jpeg, gif, webp).")
+        return redirect(url_for("gallery.upload"))
+
+    file.stream.seek(0, os.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+    if size > MAX_SIZE:
+        flash("Fayl ölçüsü 3 MB-dən böyükdür.")
+        return redirect(url_for("gallery.upload"))
+
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = f"{secrets.token_hex(8)}.{ext}"
+    path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+    file.save(path)
+
+    created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    db = get_db()
+    db.execute(
+        "INSERT INTO gallery_images (title, filename, uploader, created_at) VALUES (?, ?, ?, ?)",
+        (title, filename, uploader, created_at),
+    )
+    db.commit()
+
+    flash("Uğurla yükləndi.")
+    return redirect(url_for("gallery.grid"))
