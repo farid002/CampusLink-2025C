@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ post["title"] }} — Blog — CampusLink{% endblock %}
+{% block title %}{{ post['title'] }} — Blog — CampusLink{% endblock %}
 {% block content %}
   {% if not post['is_published'] %}
     <div class="alert alert-warning">
@@ -7,22 +7,34 @@
     </div>
   {% endif %}
   
-  <h2>{{ post["title"] }}</h2>
+  <h2>{{ post['title'] }}</h2>
   
   <div class="text-muted small mb-3">
-    <i class="bi bi-calendar"></i> {{ post["created_at"] }}
-    {% if post["tags"] %}
-      — <i class="bi bi-tags"></i> {{ post["tags"] }}
+    {{ post['created_at'] }}
+    {% if post['tags'] %}
+      — Teqlər: 
+      {% set tag_list = post['tags'].split(',') %}
+      {% for tag in tag_list %}
+        <span class="badge bg-secondary">{{ tag.strip() }}</span>
+      {% endfor %}
     {% else %}
-      — teqlər: —
+      — Teqlər: —
     {% endif %}
   </div>
   
-  <div class="mb-4" style="white-space: pre-wrap; line-height: 1.6;">{{ post["content"] }}</div>
+  <div class="mb-4" style="white-space: pre-wrap; line-height: 1.6;">
+    {{ post['content'] }}
+  </div>
   
   <div class="d-flex gap-2">
     <a href="{{ url_for('blog.list_posts') }}" class="btn btn-outline-secondary">Siyahıya qayıt</a>
-    <a href="{{ url_for('blog.edit', post_id=post['id']) }}?password=admin123" class="btn btn-outline-primary">Düzəlt</a>
-    <a href="{{ url_for('blog.delete', post_id=post['id']) }}?password=admin123" class="btn btn-outline-danger" onclick="return confirm('Yazını silmək istədiyinizə əminsiniz?');">Sil</a>
+    <a href="{{ url_for('blog.edit', post_id=post['id']) }}?password=admin123" class="btn btn-outline-primary">
+      Düzəlt
+    </a>
+    <a href="{{ url_for('blog.delete', post_id=post['id']) }}?password=admin123" 
+       class="btn btn-outline-danger" 
+       onclick="return confirm('Yazını silmək istədiyinizə əminsiniz?');">
+      Sil
+    </a>
   </div>
 {% endblock %}

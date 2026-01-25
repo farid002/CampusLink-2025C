@@ -5,22 +5,46 @@
   
   <form method="post" action="{{ url_for('blog.new_post') }}">
     <div class="mb-3">
-      <label class="form-label">Başlıq <span class="text-danger">*</span></label>
-      <input name="title" class="form-control" value="{{ title or '' }}" required>
+      <label for="title" class="form-label">Başlıq <span class="text-danger">*</span></label>
+      <input type="text" 
+             class="form-control" 
+             id="title" 
+             name="title" 
+             value="{{ title or '' }}" 
+             required>
     </div>
+    
     <div class="mb-3">
-      <label class="form-label">Teqlər (sətirlə, vergüllə və ya boş)</label>
-      <input name="tags" class="form-control" value="{{ tags or '' }}" placeholder="məs., flask,python,workshop">
+      <label for="tags" class="form-label">Teqlər</label>
+      <input type="text" 
+             class="form-control" 
+             id="tags" 
+             name="tags" 
+             value="{{ tags or '' }}" 
+             placeholder="məs., flask,python,workshop">
       <small class="form-text text-muted">Teqləri vergüllə ayırın</small>
     </div>
+    
     <div class="mb-3">
-      <label class="form-label">Məzmun <span class="text-danger">*</span></label>
-      <textarea name="content" class="form-control" rows="8" required>{{ content or '' }}</textarea>
+      <label for="content" class="form-label">Məzmun <span class="text-danger">*</span></label>
+      <textarea class="form-control" 
+                id="content" 
+                name="content" 
+                rows="8" 
+                required>{{ content or '' }}</textarea>
     </div>
+    
     <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" id="ispub" name="is_published" {% if is_published is not defined or is_published != 0 %}checked{% endif %}>
-      <label class="form-check-label" for="ispub">Dərc olunsun</label>
+      <input class="form-check-input" 
+             type="checkbox" 
+             id="is_published" 
+             name="is_published"
+             {% if is_published is not defined or is_published != 0 %}checked{% endif %}>
+      <label class="form-check-label" for="is_published">
+        Dərc olunsun
+      </label>
     </div>
+    
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary">Yarat</button>
       <a href="{{ url_for('blog.list_posts') }}" class="btn btn-outline-secondary">Ləğv et</a>

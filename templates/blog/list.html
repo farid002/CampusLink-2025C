@@ -1,23 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Blog — CampusLink{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4">
   <h2>Blog</h2>
   <a href="{{ url_for('blog.new_post') }}" class="btn btn-primary">Yeni yazı</a>
 </div>
 
+{# Search and Filter Form #}
 <form method="get" action="{{ url_for('blog.list_posts') }}" class="row g-2 mb-4">
   <div class="col-md-4">
-    <input class="form-control" name="q" placeholder="Axtar..." value="{{ q or '' }}">
+    <input type="text" class="form-control" name="q" placeholder="Axtar..." value="{{ q or '' }}">
   </div>
   <div class="col-md-3">
-    <input class="form-control" name="tag" placeholder="Teq..." value="{{ tag or '' }}">
+    <input type="text" class="form-control" name="tag" placeholder="Teq..." value="{{ tag or '' }}">
   </div>
   <div class="col-md-3">
     <select name="published" class="form-select">
       <option value="">Hamısı</option>
-      <option value="1" {% if published=='1' %}selected{% endif %}>Dərc olunmuş</option>
-      <option value="0" {% if published=='0' %}selected{% endif %}>Draft</option>
+      <option value="1" {% if published == '1' %}selected{% endif %}>Dərc olunmuş</option>
+      <option value="0" {% if published == '0' %}selected{% endif %}>Draft</option>
     </select>
   </div>
   <div class="col-md-2">
@@ -25,36 +26,48 @@
   </div>
 </form>
 
+{# Posts List #}
 {% if posts %}
-  {% for p in posts %}
+  {% for post in posts %}
     <div class="card mb-3">
       <div class="card-body">
         <h5 class="card-title">
-          <a href="{{ url_for('blog.detail', post_id=p['id']) }}" class="text-decoration-none">{{ p["title"] }}</a>
-          {% if not p['is_published'] %}
+          <a href="{{ url_for('blog.show_post', slug=post['slug']) }}" class="text-decoration-none">
+            {{ post['title'] }}
+          </a>
+          {% if not post['is_published'] %}
             <span class="badge bg-warning text-dark ms-2">Draft</span>
           {% endif %}
         </h5>
         <div class="text-muted small mb-2">
-          <i class="bi bi-calendar"></i> {{ p["created_at"] }} 
-          {% if p["tags"] %}
-            — <i class="bi bi-tags"></i> {{ p["tags"] }}
+          {{ post['created_at'] }}
+          {% if post['tags'] %}
+            — Teqlər: 
+            {% set tag_list = post['tags'].split(',') %}
+            {% for tag in tag_list %}
+              <span class="badge bg-secondary">{{ tag.strip() }}</span>
+            {% endfor %}
           {% else %}
-            — teqlər: —
+            — Teqlər: —
           {% endif %}
         </div>
-        <p class="card-text">{{ p["content"][:200] }}{% if p["content"]|length > 200 %}...{% endif %}</p>
+        <p class="card-text">
+          {{ post['content'][:200] }}{% if post['content']|length > 200 %}...{% endif %}
+        </p>
         <div class="btn-group" role="group">
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('blog.detail', post_id=p['id']) }}">Oxu</a>
-          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('blog.edit', post_id=p['id']) }}?password=admin123">Düzəlt</a>
-          <a class="btn btn-sm btn-outline-danger" href="{{ url_for('blog.delete', post_id=p['id']) }}?password=admin123">Sil</a>
+          <a href="{{ url_for('blog.show_post', slug=post['slug']) }}" class="btn btn-sm btn-outline-primary">
+            Oxu
+          </a>
+          <a href="{{ url_for('blog.edit', post_id=post['id']) }}?password=admin123" class="btn btn-sm btn-outline-secondary">
+            Düzəlt
+          </a>
         </div>
       </div>
     </div>
   {% endfor %}
 
   {# Pagination Controls #}
-  <nav aria-label="Səhifələmə">
+  <nav aria-label="Səhifələmə" class="mt-4">
     <ul class="pagination justify-content-center">
       {% if page > 1 %}
         <li class="page-item">
@@ -89,7 +102,9 @@
   <div class="alert alert-info">
     <p class="mb-0">Heç nə tapılmadı.</p>
     {% if q or tag or published %}
-      <a href="{{ url_for('blog.list_posts') }}" class="btn btn-sm btn-outline-primary mt-2">Bütün filtrləri təmizlə</a>
+      <a href="{{ url_for('blog.list_posts') }}" class="btn btn-sm btn-outline-primary mt-2">
+        Bütün filtrləri təmizlə
+      </a>
     {% endif %}
   </div>
 {% endif %}
