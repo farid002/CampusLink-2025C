@@ -10,6 +10,36 @@
     <div class="col-md-6"><input class="form-control" name="uploader" placeholder="Yükləyənə görə filtr..." value="{{ uploader or '' }}"></div>
     <div class="col-md-2"><button class="btn btn-secondary w-100">Filtrlə</button></div>
   </form>
+  {% if images %}
+  <div id="galleryCarousel" class="carousel slide mb-4" data-bs-ride="carousel" style="min-height: 420px;">
+    <div class="carousel-indicators">
+      {% for img in images %}
+      <button type="button" data-bs-target="#galleryCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slayd {{ loop.index }}"></button>
+      {% endfor %}
+    </div>
+    <div class="carousel-inner h-100">
+      {% for img in images %}
+      <div class="carousel-item{% if loop.first %} active{% endif %}">
+        <a href="{{ url_for('gallery.detail', image_id=img['id']) }}" class="d-block" style="height:400px;background:#111;">
+          <img src="{{ url_for('static', filename='uploads/' ~ img['filename']) }}" class="d-block mx-auto" alt="{{ img['title'] }}" style="max-height:400px;width:auto;object-fit:contain;">
+        </a>
+        <div class="carousel-caption d-none d-md-block">
+          <h5>{{ img["title"] }}</h5>
+          <p class="mb-0">{{ img["uploader"] }} — {{ img["created_at"] }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Əvvəlki</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Növbəti</span>
+    </button>
+  </div>
+  {% endif %}
   <div class="row g-3">
     {% for img in images %}
       <div class="col-6 col-md-4 col-lg-3">
@@ -27,4 +57,14 @@
       <p>Hələ şəkil yoxdur.</p>
     {% endfor %}
   </div>
+{% endblock %}
+{% block page_scripts %}
+<script>
+(function() {
+  var el = document.getElementById('galleryCarousel');
+  if (el && typeof bootstrap !== 'undefined') {
+    new bootstrap.Carousel(el, { interval: 5000 });
+  }
+})();
+</script>
 {% endblock %}

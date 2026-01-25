@@ -107,6 +107,38 @@ def detail(image_id: int):
     return render_template("gallery/detail.html", img=img)
 
 
+@bp.route("/<int:image_id>/edit", methods=["GET", "POST"])
+def edit(image_id: int):
+    """Şəkil məlumatlarını (title, uploader) düzəltmək — admin demo parolla."""
+    password = (request.args.get("password") or request.form.get("password") or "").strip()
+    if password != ADMIN_PASS:
+        abort(403)
+
+    db = get_db()
+    cur = db.execute("SELECT * FROM gallery_images WHERE id = ?", (image_id,))
+    img = cur.fetchone()
+    if img is None:
+        return render_template("404.html"), 404
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip() or "Başlıqsız"
+        uploader = (request.form.get("uploader") or "").strip() or "Anonim"
+        db.execute(
+            "UPDATE gallery_images SET title = ?, uploader = ? WHERE id = ?",
+            (title, uploader, image_id),
+        )
+        db.commit()
+        flash("Dəyişikliklər saxlanıldı.")
+        return redirect(url_for("gallery.detail", image_id=image_id))
+
+    return render_template(
+        "gallery/edit.html",
+        img=img,
+        image_id=image_id,
+        password=request.args.get("password", ""),
+    )
+
+
 @bp.route("/<int:image_id>/delete", methods=["GET", "POST"])
 def delete(image_id: int):
     """
@@ -219,36 +251,41 @@ def upload():
     if request.method == "GET":
         return render_template("gallery/upload.html")
 
-    file = request.files.get("file")
+    files = request.files.getlist("file")
     title = (request.form.get("title") or "").strip() or "Başlıqsız"
     uploader = (request.form.get("uploader") or "").strip() or "Anonim"
 
-    if not file or not file.filename:
-        flash("Zəhmət olmasa şəkil faylı yükləyin (png, jpg, jpeg, gif, webp).")
+    if not files or all(not f or not f.filename for f in files):
+        flash("Zəhmət olmasa ən azı bir şəkil faylı yükləyin (png, jpg, jpeg, gif, webp).")
         return redirect(url_for("gallery.upload"))
-    if not allowed(file.filename):
-        flash("Zəhmət olmasa şəkil faylı yükləyin (png, jpg, jpeg, gif, webp).")
-        return redirect(url_for("gallery.upload"))
-
-    file.stream.seek(0, os.SEEK_END)
-    size = file.stream.tell()
-    file.stream.seek(0)
-    if size > MAX_SIZE:
-        flash("Fayl ölçüsü 3 MB-dən böyükdür.")
-        return redirect(url_for("gallery.upload"))
-
-    ext = file.filename.rsplit(".", 1)[1].lower()
-    filename = f"{secrets.token_hex(8)}.{ext}"
-    path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-    file.save(path)
 
     created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     db = get_db()
-    db.execute(
-        "INSERT INTO gallery_images (title, filename, uploader, created_at) VALUES (?, ?, ?, ?)",
-        (title, filename, uploader, created_at),
-    )
-    db.commit()
+    ok = 0
+    for file in files:
+        if not file or not file.filename:
+            continue
+        if not allowed(file.filename):
+            continue
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > MAX_SIZE:
+            continue
 
-    flash("Uğurla yükləndi.")
+        ext = file.filename.rsplit(".", 1)[1].lower()
+        filename = f"{secrets.token_hex(8)}.{ext}"
+        path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+        file.save(path)
+        db.execute(
+            "INSERT INTO gallery_images (title, filename, uploader, created_at) VALUES (?, ?, ?, ?)",
+            (title, filename, uploader, created_at),
+        )
+        ok += 1
+
+    db.commit()
+    if ok:
+        flash("Uğurla yükləndi." if ok == 1 else f"{ok} şəkil uğurla yükləndi.")
+    else:
+        flash("Heç bir şəkil yüklənmədi. Fayl tipi və ölçüyə baxın.")
     return redirect(url_for("gallery.grid"))
