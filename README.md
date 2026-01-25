@@ -7,9 +7,9 @@
 git clone https://github.com/farid002/CampusLink.git
 cd CampusLink
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+# Windows: 
+.venv\Scripts\activate
+# macOS/Linux:   source .venv/bin/activate
 
 pip install -r requirements.txt
 python app.py
