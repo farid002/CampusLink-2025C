@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ topic["title"] }} — Forum — CampusLink{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        {% if topic["pinned"] %}<span class="badge bg-warning text-dark">Pinned</span>{% endif %}
+        <h2 class="mb-0">{{ topic["title"] }}</h2>
+        {% for r in reactions %}
+          <span class="badge bg-light text-dark border">{{ r["emoji"] }}</span>
+        {% endfor %}
+      </div>
+      <div class="text-muted">{{ topic["author"] }} — {{ topic["created_at"] }}</div>
+    </div>
+    <div class="text-end">
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back</a>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div style="white-space: pre-wrap;">{{ topic["content"] }}</div>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
+    <div class="text-muted">Likes: <strong>{{ topic["likes"] }}</strong></div>
+    {% if is_logged_in %}
+      <form method="POST" action="/forum/like/{{ topic['id'] }}" class="d-inline">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button class="btn btn-sm btn-outline-primary" type="submit">👍 Like</button>
+      </form>
+    {% else %}
+      <button class="btn btn-sm btn-outline-primary" type="button" disabled>👍 Like</button>
+      <span class="small text-muted"><a href="{{ url_for('forum.login', next=next_url) }}">Login to like</a></span>
+    {% endif %}
+
+    {% if is_admin %}
+      <form method="POST" action="/forum/pin/{{ topic['id'] }}" class="d-inline">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {% if topic["pinned"] %}
+          <button class="btn btn-sm btn-outline-warning" type="submit">Unpin</button>
+        {% else %}
+          <button class="btn btn-sm btn-outline-warning" type="submit">Pin</button>
+        {% endif %}
+      </form>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.edit_topic', topic_id=topic['id']) }}">Edit</a>
+      <form method="POST" action="{{ url_for('forum.delete_topic', topic_id=topic['id']) }}" class="d-inline">
+        <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+      </form>
+
+      <div class="w-100"></div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <form method="POST" action="{{ url_for('forum.react', topic_id=topic['id']) }}" class="d-flex gap-2">
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <select name="emoji" class="form-select form-select-sm" style="max-width: 120px;">
+            {% for e in allowed_emojis %}
+              <option value="{{ e }}">{{ e }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-sm btn-outline-success" type="submit">Add reaction</button>
+        </form>
+        <div class="d-flex gap-1 flex-wrap">
+          {% for r in reactions %}
+            <form method="POST" action="{{ url_for('forum.unreact', reaction_id=r['id']) }}" class="d-inline">
+              <input type="hidden" name="next" value="{{ next_url }}">
+              <button class="btn btn-sm btn-outline-dark" type="submit" title="Remove">{{ r["emoji"] }} ×</button>
+            </form>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <h5 class="mb-3">Replies</h5>
+  {% for r in replies %}
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <strong>{{ r["author"] }}</strong>
+          <span class="text-muted small">{{ r["created_at"] }}</span>
+        </div>
+        <div class="mt-2" style="white-space: pre-wrap;">{{ r["content"] }}</div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-light border">No replies yet.</div>
+  {% endfor %}
+
+  <hr class="my-4">
+  <h5 class="mb-3">Reply</h5>
+  {% if is_logged_in %}
+    <form method="POST" action="/forum/{{ topic['id'] }}">
+      <div class="mb-3">
+        <textarea name="content" class="form-control" rows="4" placeholder="Write your reply..." required></textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">Reply</button>
+    </form>
+  {% else %}
+    <div class="alert alert-info">
+      Log in to reply.
+      <a class="alert-link" href="{{ url_for('forum.login', next=next_url) }}">Login</a>
+    </div>
+  {% endif %}
+{% endblock %}

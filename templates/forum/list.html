@@ -3,29 +3,63 @@
 {% block title %}Forum — CampusLink{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h2>Forum</h2>
-  <a href="{{ url_for('forum.new_topic') }}" class="btn btn-primary">Yeni mövzu</a>
+  <div>
+    <h2 class="mb-0">Forum</h2>
+    <div class="text-muted small">
+      User: <strong>{{ current_user }}</strong>
+      {% if is_admin %}<span class="badge bg-warning text-dark ms-2">Admin</span>{% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('forum.user_view', next=next_url) }}" class="btn btn-outline-secondary">User</a>
+    <a href="{{ url_for('forum.admin_view', next=next_url) }}" class="btn btn-outline-warning">Admin</a>
+    <a href="{{ url_for('forum.new_topic') }}" class="btn btn-primary">Yeni mövzu</a>
+  </div>
 </div>
 
-<form class="row g-2 mb-3">
-  <div class="col-md-6"><input class="form-control" name="q" placeholder="Axtar..." value="{{ q or '' }}"></div>
-  <div class="col-md-2"><button class="btn btn-secondary w-100">Axtar</button></div>
+<form method="GET" action="/forum/" class="row g-2 mb-3">
+  <div class="col-md-8">
+    <input class="form-control" name="q" placeholder="Search topics..." value="{{ q or '' }}">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-secondary w-100" type="submit">Search</button>
+  </div>
+  <div class="col-md-2">
+    <a class="btn btn-outline-secondary w-100" href="{{ url_for('forum.list_topics') }}">Clear</a>
+  </div>
 </form>
 
 <div class="list-group">
   {% for t in topics %}
-    <a class="list-group-item list-group-item-action" href="{{ url_for('forum.detail', topic_id=t['id']) }}">
-      <div class="d-flex w-100 justify-content-between">
-        <h5 class="mb-1">
-          {% if t["is_pinned"] %}<span class="badge bg-warning text-dark">PIN</span> {% endif %}
-          {{ t["title"] }}
-        </h5>
-        <small>{{ t["author"] }} — {{ t["created_at"] }}</small>
+    <div class="list-group-item">
+      <div class="d-flex w-100 justify-content-between align-items-start gap-2">
+        <div class="flex-grow-1">
+          <h5 class="mb-1">
+            {% if t["pinned"] %}<span class="badge bg-warning text-dark me-1">Pinned</span>{% endif %}
+            <a class="text-decoration-none" href="{{ url_for('forum.detail', topic_id=t['id']) }}">{{ t["title"] }}</a>
+          </h5>
+          <div class="text-muted small mb-2">{{ t["author"] }} — {{ t["created_at"] }}</div>
+          <div class="text-muted small">
+            {{ (t["content"] or "")[:160] }}{% if (t["content"] or "")|length > 160 %}...{% endif %}
+          </div>
+        </div>
+        <div class="text-end">
+          <div class="small text-muted mb-2">Likes: <strong>{{ t["likes"] }}</strong></div>
+          {% if is_admin %}
+            <form method="POST" action="/forum/pin/{{ t['id'] }}" class="d-inline">
+              <input type="hidden" name="next" value="{{ next_url }}">
+              {% if t["pinned"] %}
+                <button class="btn btn-sm btn-outline-warning" type="submit">Unpin</button>
+              {% else %}
+                <button class="btn btn-sm btn-outline-warning" type="submit">Pin</button>
+              {% endif %}
+            </form>
+          {% endif %}
+        </div>
       </div>
-      <p class="mb-1 text-muted">Likes: {{ t["likes"] }}</p>
-    </a>
+    </div>
   {% else %}
-    <p>Hələ mövzu yoxdur.</p>
+    <div class="alert alert-info mb-0">No topics yet.</div>
   {% endfor %}
 </div>
 {% endblock %}

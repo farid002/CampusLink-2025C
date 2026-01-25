@@ -24,6 +24,34 @@
             <li class="nav-item"><a class="nav-link" href="{{ url_for('polls.list_polls') }}">Sorğular</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('feedback.contact') }}">Əlaqə</a></li>
           </ul>
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            {% set role = session.get("role") or "guest" %}
+            {% if role == "guest" %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('forum.login', next=request.full_path) }}">Login</a>
+              </li>
+            {% elif role == "admin" %}
+              <li class="nav-item">
+                <span class="navbar-text text-light me-2">Admin: {{ session.get("admin_name") or session.get("user_name") or "Admin" }}</span>
+              </li>
+              <li class="nav-item">
+                <form method="POST" action="{{ url_for('forum.logout') }}" class="d-inline">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  <button class="btn btn-sm btn-outline-light" type="submit">Logout</button>
+                </form>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <span class="navbar-text text-light me-2">Hello, {{ session.get("user_name") or "User" }}</span>
+              </li>
+              <li class="nav-item">
+                <form method="POST" action="{{ url_for('forum.logout') }}" class="d-inline">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  <button class="btn btn-sm btn-outline-light" type="submit">Logout</button>
+                </form>
+              </li>
+            {% endif %}
+          </ul>
         </div>
       </div>
     </nav>
