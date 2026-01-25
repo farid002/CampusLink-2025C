@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Forum — CampusLink{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-start mb-3 gap-3">
+    <div>
+      <h2 class="mb-0">Forum</h2>
+      {% if forum_role == "guest" %}
+        <div class="text-muted small">Read-only mode (Guest).</div>
+      {% elif forum_role == "admin" %}
+        <div class="text-muted small">Admin: <strong>{{ forum_name }}</strong></div>
+      {% else %}
+        <div class="text-muted small">Hello, <strong>{{ forum_name }}</strong></div>
+      {% endif %}
+    </div>
+    <div class="text-end">
+      {% if is_logged_in %}
+        <a href="{{ url_for('forum.new_topic') }}" class="btn btn-primary">New Topic</a>
+      {% else %}
+        <div class="small text-muted mb-1">Log in to create a topic.</div>
+        <a href="{{ url_for('forum.login', next=request.full_path) }}" class="btn btn-outline-primary">Login</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="GET" action="/forum/" class="row g-2 mb-3">
+    <div class="col-md-8">
+      <input class="form-control" name="q" placeholder="Search topics..." value="{{ q or '' }}">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-secondary w-100" type="submit">Search</button>
+    </div>
+    <div class="col-md-2">
+      <a class="btn btn-outline-secondary w-100" href="{{ url_for('forum.list_topics') }}">Clear</a>
+    </div>
+  </form>
+
+  <div class="list-group">
+    {% for t in topics %}
+      {% set rx = reactions_by_topic.get(t['id'], []) %}
+      <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              {% if t["pinned"] %}<span class="badge bg-warning text-dark">Pinned</span>{% endif %}
+              <a class="h5 mb-0 text-decoration-none" href="{{ url_for('forum.detail', topic_id=t['id']) }}">{{ t["title"] }}</a>
+              {% for r in rx %}
+                <span class="badge bg-light text-dark border">{{ r["emoji"] }}</span>
+              {% endfor %}
+            </div>
+            <div class="text-muted small mt-1">{{ t["author"] }} — {{ t["created_at"] }}</div>
+            <div class="text-muted small mt-2">
+              {{ (t["content"] or "")[:160] }}{% if (t["content"] or "")|length > 160 %}...{% endif %}
+            </div>
+          </div>
+
+          <div class="text-end">
+            <div class="small text-muted mb-2">Likes: <strong>{{ t["likes"] }}</strong></div>
+
+            {% if is_logged_in %}
+              <form method="POST" action="/forum/like/{{ t['id'] }}" class="d-inline">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">👍 Like</button>
+              </form>
+            {% else %}
+              <button class="btn btn-sm btn-outline-primary" type="button" disabled>👍 Like</button>
+              <div class="small text-muted mt-1"><a href="{{ url_for('forum.login', next=request.full_path) }}">Login to like</a></div>
+            {% endif %}
+
+            {% if is_admin %}
+              <div class="mt-2 d-flex flex-wrap gap-1 justify-content-end">
+                <form method="POST" action="/forum/pin/{{ t['id'] }}" class="d-inline">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  {% if t["pinned"] %}
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Unpin</button>
+                  {% else %}
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Pin</button>
+                  {% endif %}
+                </form>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('forum.edit_topic', topic_id=t['id']) }}">Edit</a>
+                <form method="POST" action="{{ url_for('forum.delete_topic', topic_id=t['id']) }}" class="d-inline">
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                </form>
+              </div>
+
+              <div class="mt-2">
+                <form method="POST" action="{{ url_for('forum.react', topic_id=t['id']) }}" class="d-flex gap-2 justify-content-end">
+                  <input type="hidden" name="next" value="{{ request.full_path }}">
+                  <select name="emoji" class="form-select form-select-sm" style="max-width: 120px;">
+                    {% for e in allowed_emojis %}
+                      <option value="{{ e }}">{{ e }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm btn-outline-success" type="submit">Add</button>
+                </form>
+                <div class="d-flex gap-1 justify-content-end flex-wrap mt-1">
+                  {% for r in rx %}
+                    <form method="POST" action="{{ url_for('forum.unreact', reaction_id=r['id']) }}" class="d-inline">
+                      <input type="hidden" name="next" value="{{ request.full_path }}">
+                      <button class="btn btn-sm btn-outline-dark" type="submit" title="Remove">{{ r["emoji"] }} ×</button>
+                    </form>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0">No topics yet.</div>
+    {% endfor %}
+  </div>
+{% endblock %}

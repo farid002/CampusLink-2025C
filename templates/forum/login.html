@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Login — Forum — CampusLink{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Login</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back to Forum</a>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-3">User Login</h5>
+          <form method="POST" action="{{ url_for('forum.login') }}">
+            <input type="hidden" name="login_type" value="user">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <div class="mb-3">
+              <label class="form-label">Display name</label>
+              <input name="user_name" class="form-control" minlength="2" maxlength="30" required>
+              <div class="form-text">2–30 characters.</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card border-warning">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Admin Login</h5>
+          <form method="POST" action="{{ url_for('forum.login') }}">
+            <input type="hidden" name="login_type" value="admin">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <div class="mb-3">
+              <label class="form-label">Admin name (optional)</label>
+              <input name="admin_name" class="form-control" maxlength="30" placeholder="Admin">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Admin code</label>
+              <input name="admin_code" type="password" class="form-control" required>
+              <div class="form-text">Set `ADMIN_CODE` env var to change it.</div>
+            </div>
+            <button class="btn btn-warning" type="submit">Login as Admin</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

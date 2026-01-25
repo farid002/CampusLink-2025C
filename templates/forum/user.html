@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}User — Forum — CampusLink{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">User</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('forum.list_topics') }}">Back to Forum</a>
+  </div>
+
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="mb-2">
+        <span class="text-muted">Current user:</span>
+        <strong>{{ current_user }}</strong>
+        {% if is_admin %}
+          <span class="badge bg-warning text-dark ms-2">Admin</span>
+        {% endif %}
+      </div>
+
+      <form method="POST" action="{{ url_for('forum.user_view') }}" class="row g-2 align-items-end">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <div class="col-md-8">
+          <label class="form-label">Display name</label>
+          <input name="username" class="form-control" placeholder="e.g. Ilkin" minlength="2" required>
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-primary w-100" type="submit">Save</button>
+        </div>
+      </form>
+
+      <hr class="my-3">
+      <form method="POST" action="{{ url_for('forum.user_view') }}" class="d-inline">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <input type="hidden" name="action" value="logout">
+        <button class="btn btn-outline-danger" type="submit">Clear user (Anonymous)</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
