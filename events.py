@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-events.py — Tədbirlər modulu (SKELETON + TƏLİMAT)
-...
-"""
+
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, Response
 from database import get_db, dict_from_row

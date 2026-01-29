@@ -1,12 +1,5 @@
 
 # -*- coding: utf-8 -*-
-"""
-database.py — SQLite bağlantısı, sxem yeniləmələri və demo məlumatların daxil edilməsi.
-
-Bu fayl həmçinin *kiçik yardımçı funksiyalar* təqdim edir:
- - `paginate_query` — səhifələmə üçün limit/offset tənzimləyir
- - `dict_from_row` — sqlite3.Row -> dict çevrilməsi
-"""
 
 import os, sqlite3, datetime, json
 from flask import g

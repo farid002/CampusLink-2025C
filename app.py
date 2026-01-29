@@ -1,15 +1,5 @@
 
 # -*- coding: utf-8 -*-
-"""
-app.py — Genişləndirilmiş Flask tətbiqinin giriş nöqtəsi.
-
-Bu fayl:
- - Flask tətbiqini yaradır və konfiqurasiya edir
- - Yükləmə qovluğunu təyin edir (qalereya üçün)
- - Məlumat bazasını ilkinləşdirir (cədvəllər + demo məlumat)
- - Bütün modulları (blueprint) qeydiyyatdan keçirir
- - Ana səhifəni təqdim edir
-"""
 
 import os
 from flask import Flask, render_template
