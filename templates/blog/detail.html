@@ -4,5 +4,12 @@
   <h2>{{ post["title"] }}</h2>
   <div class="text-muted small mb-3">{{ post["created_at"] }} — teqlər: {{ post["tags"] or "—" }}</div>
   <p style="white-space: pre-wrap;">{{ post["content"] }}</p>
+  
+  <div class="mt-3 mb-3">
+    <h5>Workshop 2 - AI/ML Funksiyaları</h5>
+    <a href="{{ url_for('blog_ocr.ocr_extract', post_id=post['id']) }}" class="btn btn-outline-primary me-2">📷 OCR (Şəkillərdən mətn)</a>
+    <a href="{{ url_for('blog_tts.tts_generate', post_id=post['id']) }}" class="btn btn-outline-primary">🔊 TTS (Avtomatik blog yazısı)</a>
+  </div>
+  
   <a href="{{ url_for('blog.list_posts') }}" class="btn btn-outline-secondary mt-2">Geri</a>
 {% endblock %}

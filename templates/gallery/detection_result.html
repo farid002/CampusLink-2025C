@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Detection Nəticəsi — Qalereya — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-10 mx-auto">
+    <h2>Detection Nəticəsi</h2>
+    <p class="text-muted">{{ result["created_at"] }}</p>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Nəticə şəkili (qutular ilə)</h5>
+      </div>
+      <div class="card-body">
+        <img src="{{ url_for('static', filename='detections/gallery/' ~ result['result_image_path']) }}" class="img-fluid" alt="Detection nəticəsi">
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Tapılan obyektlər</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-group">
+          {% for obj in result["detected_objects"] %}
+          <li class="list-group-item">
+            <strong>{{ obj.get("class", "Naməlum") }}</strong> — 
+            Etibar: {{ "%.2f"|format(obj.get("confidence", 0) * 100) }}%
+          </li>
+          {% else %}
+          <li class="list-group-item">Obyekt tapılmadı</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Təbii dildə təsvir (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <p>{{ result["gpt_description"] or "GPT təsviri hələ hazır deyil" }}</p>
+      </div>
+    </div>
+    
+    <a href="{{ url_for('gallery.detail', image_id=image_id) }}" class="btn btn-secondary">Geri</a>
+  </div>
+</div>
+{% endblock %}
+

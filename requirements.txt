@@ -1,1 +1,15 @@
-Flask>=3.0
+Flask>=3.0.0
+
+# Workshop 2 - Yalnız OpenAI GPT API (100% pip-installable)
+Pillow>=10.1.0
+python-dotenv>=1.0.0
+openai>=1.0.0
+
+# Yalnız OpenAI API - bütün funksiyalar üçün kifayətdir!
+# - GPT Vision API (gpt-4o-mini): şəkil analizi, OCR, object detection, face detection
+# - GPT Whisper API: speech-to-text
+# - GPT TTS API (tts-1): text-to-speech
+# - GPT Chat API (gpt-3.5-turbo): mətn emalı, xülasə, yaratma
+
+# Qeyd: OpenCV yalnız gallery_detection.py-də qutular çəkmək üçün lazımdır (optional)
+# opencv-python>=4.8.0  # Uncomment if needed for drawing boxes

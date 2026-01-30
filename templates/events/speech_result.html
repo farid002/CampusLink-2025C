@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Qeydiyyat Nəticəsi — Tədbirlər — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>Qeydiyyat Nəticəsi</h2>
+    <p class="text-muted">{{ registration["created_at"] }}</p>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Transkript (Səs → Mətn)</h5>
+      </div>
+      <div class="card-body">
+        <pre class="bg-light p-3">{{ registration["transcribed_text"] or "Transkript hələ hazır deyil" }}</pre>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Formatlaşdırılmış məlumat (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-3">Ad:</dt>
+          <dd class="col-sm-9">{{ registration["parsed_data"].get("name", "Tapılmadı") }}</dd>
+          <dt class="col-sm-3">Email:</dt>
+          <dd class="col-sm-9">{{ registration["parsed_data"].get("email", "Tapılmadı") }}</dd>
+          <dt class="col-sm-3">Mesaj:</dt>
+          <dd class="col-sm-9">{{ registration["parsed_data"].get("message", "Tapılmadı") }}</dd>
+        </dl>
+      </div>
+    </div>
+    
+    <a href="{{ url_for('events.detail', event_id=event_id) }}" class="btn btn-secondary">Geri</a>
+  </div>
+</div>
+{% endblock %}
+

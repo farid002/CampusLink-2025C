@@ -5,6 +5,13 @@
   <h2>{{ img["title"] }}</h2>
   <img class="img-fluid mb-3" src="{{ url_for('static', filename='uploads/' ~ img['filename']) }}" alt="{{ img['title'] }}">
   <p class="text-muted">Yükləyən: {{ img["uploader"] }} — {{ img["created_at"] }}</p>
+  
+  <div class="mb-3">
+    <h5>Workshop 2 - AI/ML Funksiyaları</h5>
+    <a href="{{ url_for('gallery_detection.detect', image_id=img['id']) }}" class="btn btn-outline-primary me-2">🔍 Object Detection</a>
+    <a href="{{ url_for('gallery_faces.faces_detect', image_id=img['id']) }}" class="btn btn-outline-primary">👤 Face Detection</a>
+  </div>
+  
   <p>
     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('gallery.edit', image_id=img['id']) }}?password=admin123">Düzəlt (admin)</a>
     <a class="btn btn-sm btn-outline-danger" href="{{ url_for('gallery.delete', image_id=img['id']) }}?password=admin123">Sil (admin)</a>

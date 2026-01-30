@@ -8,6 +8,13 @@
       {% if poll['is_closed'] %}Aç{% else %}Bağla{% endif %}
     </a>
   </div>
+  <div class="mb-3">
+    <h5>Workshop 2 - AI/ML Funksiyaları</h5>
+    {% if not poll['is_closed'] %}
+      <a href="{{ url_for('polls_speech.speech_vote', poll_id=poll['id']) }}" class="btn btn-outline-primary">🎤 Səs ilə səs vermə</a>
+    {% endif %}
+  </div>
+
   <form method="post" class="mb-3">
     {% if poll['is_closed'] %}
       <div class="alert alert-secondary">Sorğu bağlıdır, səs vermək mümkün deyil.</div>

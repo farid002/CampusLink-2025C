@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}TTS — Forum — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>TTS — Mövzu səsə çevirmə</h2>
+    {% if topic %}
+      <p class="text-muted">Mövzu: <strong>{{ topic["title"] }}</strong></p>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5>Mövzu məzmunu</h5>
+        </div>
+        <div class="card-body">
+          <p style="white-space: pre-wrap;">{{ topic["content"] }}</p>
+        </div>
+      </div>
+    {% elif reply %}
+      <p class="text-muted">Cavab ID: {{ reply["id"] }}</p>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5>Cavab məzmunu</h5>
+        </div>
+        <div class="card-body">
+          <p style="white-space: pre-wrap;">{{ reply["content"] }}</p>
+        </div>
+      </div>
+    {% endif %}
+    
+    <div class="card">
+      <div class="card-body">
+        <p class="text-muted">GPT ilə mətni qısaldacaq, sonra TTS edəcək.</p>
+        <form method="POST">
+          <button type="submit" class="btn btn-primary">TTS yarat</button>
+          {% if topic %}
+            <a href="{{ url_for('forum.detail', topic_id=topic['id']) }}" class="btn btn-secondary">Geri</a>
+          {% else %}
+            <a href="{{ url_for('forum.detail', topic_id=topic_id) }}" class="btn btn-secondary">Geri</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

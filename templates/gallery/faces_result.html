@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Face Detection Nəticəsi — Qalereya — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>Face Detection Nəticəsi</h2>
+    <p class="text-muted">{{ result["created_at"] }}</p>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Üz sayı</h5>
+      </div>
+      <div class="card-body">
+        <h3 class="text-primary">{{ result["face_count"] or 0 }} üz tapıldı</h3>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Şəkil təsviri (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <p>{{ result["gpt_description"] or "GPT təsviri hələ hazır deyil" }}</p>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Teqlər (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          {% if result["gpt_tags"] %}
+            {% for tag in result["gpt_tags"].split(",") %}
+              <span class="badge bg-secondary">{{ tag.strip() }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="text-muted">Teqlər hələ hazır deyil</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <a href="{{ url_for('gallery.detail', image_id=image_id) }}" class="btn btn-secondary">Geri</a>
+  </div>
+</div>
+{% endblock %}
+

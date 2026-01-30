@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Obyekt Tapma — Qalereya — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>Obyekt Detection</h2>
+    <p class="text-muted">Şəkil: <strong>{{ image["title"] }}</strong></p>
+    
+    <div class="card mb-3">
+      <div class="card-body">
+        <img src="{{ url_for('static', filename='uploads/' ~ image['filename']) }}" class="img-fluid" alt="{{ image['title'] }}">
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-body">
+        <p class="text-muted">YOLO modeli ilə şəkildə obyektləri tapacaq və GPT ilə təsvir edəcək.</p>
+        <form method="POST">
+          <button type="submit" class="btn btn-primary">Detection işlədir</button>
+          <a href="{{ url_for('gallery.detail', image_id=image['id']) }}" class="btn btn-secondary">Geri</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

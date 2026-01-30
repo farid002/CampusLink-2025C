@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}OCR Nəticəsi — Blog — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-10 mx-auto">
+    <h2>OCR Nəticəsi</h2>
+    <p class="text-muted">{{ result["created_at"] }}</p>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Orijinal şəkil</h5>
+      </div>
+      <div class="card-body">
+        <img src="{{ url_for('static', filename='uploads/' ~ result['image_path']) }}" class="img-fluid" alt="OCR şəkil">
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Çıxarılmış mətn (OCR)</h5>
+      </div>
+      <div class="card-body">
+        <pre class="bg-light p-3">{{ result["extracted_text"] or "Mətn tapılmadı" }}</pre>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Təkmilləşdirilmiş mətn (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <pre class="bg-light p-3">{{ result["improved_text"] or "GPT təkmilləşdirməsi hələ hazır deyil" }}</pre>
+      </div>
+    </div>
+    
+    <a href="{{ url_for('blog.detail', post_id=post_id) }}" class="btn btn-secondary">Geri</a>
+  </div>
+</div>
+{% endblock %}
+

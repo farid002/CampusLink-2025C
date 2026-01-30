@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}TTS — Blog — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>TTS — Avtomatik blog yazısı</h2>
+    <p class="text-muted">Blog yazısı: <strong>{{ post["title"] }}</strong></p>
+    
+    <div class="card">
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label for="title" class="form-label">Başlıq</label>
+            <input type="text" class="form-control" id="title" name="title" value="{{ post['title'] }}" required>
+            <div class="form-text">GPT bu başlıqdan blog yazısı yaradacaq</div>
+          </div>
+          <div class="mb-3">
+            <label for="keywords" class="form-label">Açar sözlər</label>
+            <textarea class="form-control" id="keywords" name="keywords" rows="3" placeholder="Məsələn: Python, Flask, Web Development"></textarea>
+            <div class="form-text">Vergüllə ayrılmış açar sözlər</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Blog yazısı yarat və TTS et</button>
+          <a href="{{ url_for('blog.detail', post_id=post['id']) }}" class="btn btn-secondary">Geri</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

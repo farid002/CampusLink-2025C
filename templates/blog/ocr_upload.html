@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}OCR — Blog — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>OCR — Şəkillərdən mətn çıxarma</h2>
+    <p class="text-muted">Blog yazısı: <strong>{{ post["title"] }}</strong></p>
+    
+    <div class="card">
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="image" class="form-label">Şəkil faylı seçin</label>
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+            <div class="form-text">PNG, JPG, JPEG formatları dəstəklənir</div>
+          </div>
+          <button type="submit" class="btn btn-primary">OCR işlədir</button>
+          <a href="{{ url_for('blog.detail', post_id=post['id']) }}" class="btn btn-secondary">Geri</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Səs Nəticəsi — Sorğular — CampusLink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <h2>Səs Nəticəsi</h2>
+    <p class="text-muted">{{ vote["created_at"] }}</p>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Transkript (Səs → Mətn)</h5>
+      </div>
+      <div class="card-body">
+        <pre class="bg-light p-3">{{ vote["transcribed_text"] or "Transkript hələ hazır deyil" }}</pre>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5>Tanınmış seçim (GPT)</h5>
+      </div>
+      <div class="card-body">
+        <h4 class="text-success">{{ vote["matched_option"] }}</h4>
+        <p class="text-muted">İndeks: {{ vote["matched_option_index"] }}</p>
+      </div>
+    </div>
+    
+    <a href="{{ url_for('polls.detail', poll_id=poll_id) }}" class="btn btn-secondary">Geri</a>
+  </div>
+</div>
+{% endblock %}
+

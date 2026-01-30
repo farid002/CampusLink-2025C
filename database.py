@@ -138,6 +138,98 @@ def init_db(force: bool = False):
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL
         );
+
+        -- Workshop 2 - Blog OCR (GPT Vision + Chat API)
+        -- extracted_text: GPT Vision API ilə çıxarılmış mətn
+        -- improved_text: GPT Chat API ilə təmizlənmiş mətn
+        CREATE TABLE IF NOT EXISTS blog_ocr_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            extracted_text TEXT,
+            improved_text TEXT,
+            image_path TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Blog TTS (GPT Chat + OpenAI TTS API)
+        -- generated_content: GPT Chat API ilə yaradılmış blog yazısı
+        -- audio_filename: OpenAI TTS API ilə yaradılmış audio faylı
+        CREATE TABLE IF NOT EXISTS blog_tts_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            audio_filename TEXT NOT NULL,
+            generated_content TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Events Speech (OpenAI Whisper + GPT Chat API)
+        -- transcribed_text: OpenAI Whisper API ilə transkript edilmiş mətn
+        -- parsed_data_json: GPT Chat API ilə strukturlaşdırılmış məlumat (JSON)
+        CREATE TABLE IF NOT EXISTS event_speech_registrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            audio_filename TEXT,
+            transcribed_text TEXT,
+            parsed_data_json TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Gallery Detection (GPT Vision + Chat API)
+        -- detected_objects_json: GPT Vision API ilə tapılmış obyektlər (JSON)
+        -- gpt_description: GPT Chat API ilə yaradılmış təsvir
+        CREATE TABLE IF NOT EXISTS gallery_detections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_id INTEGER NOT NULL,
+            detected_objects_json TEXT,
+            gpt_description TEXT,
+            result_image_path TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (image_id) REFERENCES gallery_images(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Gallery Faces (GPT Vision + Chat API)
+        -- face_count: GPT Vision API ilə tapılmış üz sayı
+        -- gpt_description: GPT Chat API ilə yaradılmış təsvir
+        -- gpt_tags: GPT Chat API ilə yaradılmış teqlər
+        CREATE TABLE IF NOT EXISTS gallery_faces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_id INTEGER NOT NULL,
+            face_count INTEGER,
+            gpt_description TEXT,
+            gpt_tags TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (image_id) REFERENCES gallery_images(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Forum TTS (GPT Chat + OpenAI TTS API)
+        -- summarized_content: GPT Chat API ilə qısaldılmış mətn (xülasə)
+        -- audio_filename: OpenAI TTS API ilə yaradılmış audio faylı
+        CREATE TABLE IF NOT EXISTS forum_tts_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic_id INTEGER,
+            reply_id INTEGER,
+            audio_filename TEXT NOT NULL,
+            summarized_content TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (topic_id) REFERENCES forum_topics(id) ON DELETE CASCADE,
+            FOREIGN KEY (reply_id) REFERENCES forum_replies(id) ON DELETE CASCADE
+        );
+
+        -- Workshop 2 - Polls Speech (OpenAI Whisper + GPT Chat API)
+        -- transcribed_text: OpenAI Whisper API ilə transkript edilmiş mətn
+        -- matched_option_index: GPT Chat API ilə seçilmiş seçim indeksi
+        CREATE TABLE IF NOT EXISTS poll_speech_votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            poll_id INTEGER NOT NULL,
+            audio_filename TEXT,
+            transcribed_text TEXT,
+            matched_option_index INTEGER,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE
+        );
         """
     )
 

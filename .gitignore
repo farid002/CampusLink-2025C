@@ -19,3 +19,14 @@ env/
 .DS_Store
 Thumbs.db
 *.db
+
+# .env faylı (API açarları)
+.env
+.env.local
+.env.*.local
+
+# Workshop 2 - Generated files
+static/audio/
+static/detections/
+
+solution/
