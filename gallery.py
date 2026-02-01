@@ -44,7 +44,10 @@ def detail(image_id: int):
     img = cur.fetchone()
     if img is None:
         return render_template("404.html"), 404
-    return render_template("gallery/detail.html", img=img)
+    from gallery_detection import analyze_image_brightness
+    image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], img["filename"])
+    brightness = analyze_image_brightness(image_path)
+    return render_template("gallery/detail.html", img=img, brightness=brightness)
 
 
 @bp.route("/<int:image_id>/edit", methods=["GET", "POST"])
