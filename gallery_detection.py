@@ -62,6 +62,26 @@ def _normalize_detection(obj: dict) -> dict:
     return {"class": class_name, "confidence": confidence, "bbox": bbox}
 
 
+def analyze_image_brightness(image_path: str) -> dict:
+    """
+    Şəkilin tünd və ya işıqlı olduğunu müəyyən edir.
+    Grayscale ortalama parlaqlığa əsasən "dark" və ya "light" qaytarır.
+
+    Returns:
+        dict: {"label": "dark"|"light", "brightness": 0-255}
+    """
+    import cv2
+    if not os.path.isfile(image_path):
+        return {"label": "unknown", "brightness": 0}
+    img = cv2.imread(image_path)
+    if img is None:
+        return {"label": "unknown", "brightness": 0}
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    brightness = float(gray.mean())
+    label = "light" if brightness >= 128 else "dark"
+    return {"label": label, "brightness": round(brightness, 1)}
+
+
 def detect_objects_with_gpt_vision(image_path: str) -> list:
     """
     YOLOv8n ilə şəkillərdə obyektləri tapır. Nəticə formatı: class (lowercase singular),
