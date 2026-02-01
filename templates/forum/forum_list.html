@@ -34,10 +34,22 @@
     </div>
   </form>
 
+  <div class="mb-3 d-flex align-items-center gap-2">
+    <label class="small text-muted mb-0">TTS Voice:</label>
+    <select id="global-tts-voice" class="form-select form-select-sm" style="max-width: 120px;">
+      <option value="alloy">alloy</option>
+      <option value="echo">echo</option>
+      <option value="fable">fable</option>
+      <option value="onyx">onyx</option>
+      <option value="nova">nova</option>
+      <option value="shimmer">shimmer</option>
+    </select>
+  </div>
+
   <div class="list-group">
     {% for t in topics %}
       {% set rx = reactions_by_topic.get(t['id'], []) %}
-      <div class="list-group-item">
+      <div class="list-group-item topic-card" data-topic-id="{{ t['id'] }}">
         <div class="d-flex justify-content-between align-items-start gap-3">
           <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -48,8 +60,28 @@
               {% endfor %}
             </div>
             <div class="text-muted small mt-1">{{ t["author"] }} — {{ t["created_at"] }}</div>
+            {% set meta = meta_by_topic.get(t['id'], {}) %}
+            <div class="text-muted small mt-1">
+              Replies: <strong>{{ meta.get("reply_count", 0) }}</strong>
+              · Views: <strong>{{ t.get("views", 0) }}</strong>
+              · Last: {{ meta.get("last_activity_at", t["created_at"]) }} by {{ meta.get("last_activity_author", t["author"]) }}
+            </div>
             <div class="text-muted small mt-2">
               {{ (t["content"] or "")[:160] }}{% if (t["content"] or "")|length > 160 %}...{% endif %}
+            </div>
+
+            <div class="mt-3 pt-2 border-top topic-ai-panel">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary topic-summarize-btn" data-topic-id="{{ t['id'] }}">Summarize</button>
+                <button type="button" class="btn btn-sm btn-outline-primary topic-tts-btn" data-topic-id="{{ t['id'] }}">TTS</button>
+                <span class="topic-summarize-loading text-muted small" style="display: none;">Generating…</span>
+                <span class="topic-tts-loading text-muted small" style="display: none;">Generating audio…</span>
+                <span class="topic-error text-danger small" style="display: none;"></span>
+              </div>
+              <div class="topic-summary-area small bg-light rounded p-2 mb-2" style="display: none;"></div>
+              <div class="topic-tts-player" style="display: none;">
+                <audio class="topic-audio" controls style="max-width: 300px;"></audio>
+              </div>
             </div>
           </div>
 
@@ -109,4 +141,96 @@
       <div class="alert alert-info mb-0">No topics yet.</div>
     {% endfor %}
   </div>
+
+  <script>
+    (function() {
+      var voiceSelect = document.getElementById('global-tts-voice');
+      function getVoice() { return voiceSelect ? voiceSelect.value : 'alloy'; }
+
+      document.querySelectorAll('.topic-summarize-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var topicId = btn.dataset.topicId;
+          var card = btn.closest('.topic-card');
+          var loading = card.querySelector('.topic-summarize-loading');
+          var errSpan = card.querySelector('.topic-error');
+          var summaryArea = card.querySelector('.topic-summary-area');
+
+          btn.disabled = true;
+          loading.style.display = 'inline';
+          errSpan.style.display = 'none';
+          errSpan.textContent = '';
+
+          fetch('/forum/' + topicId + '/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            if (data.ok) {
+              summaryArea.textContent = data.summary || '';
+              summaryArea.style.display = 'block';
+            } else {
+              errSpan.textContent = data.error || 'An error occurred.';
+              errSpan.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            errSpan.textContent = 'An error occurred. Please try again.';
+            errSpan.style.display = 'inline';
+          });
+        });
+      });
+
+      document.querySelectorAll('.topic-tts-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var topicId = btn.dataset.topicId;
+          var card = btn.closest('.topic-card');
+          var loading = card.querySelector('.topic-tts-loading');
+          var errSpan = card.querySelector('.topic-error');
+          var player = card.querySelector('.topic-tts-player');
+          var audio = card.querySelector('.topic-audio');
+          var summaryArea = card.querySelector('.topic-summary-area');
+
+          btn.disabled = true;
+          loading.style.display = 'inline';
+          errSpan.style.display = 'none';
+          errSpan.textContent = '';
+
+          fetch('/forum/' + topicId + '/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voice: getVoice(), lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            if (data.ok) {
+              if (data.summary && !summaryArea.textContent) {
+                summaryArea.textContent = data.summary;
+                summaryArea.style.display = 'block';
+              }
+              player.style.display = 'block';
+              audio.src = data.audio_url;
+              audio.play().catch(function() {});
+            } else {
+              errSpan.textContent = data.error || 'An error occurred.';
+              errSpan.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            errSpan.textContent = 'An error occurred. Please try again.';
+            errSpan.style.display = 'inline';
+          });
+        });
+      });
+    })();
+  </script>
 {% endblock %}

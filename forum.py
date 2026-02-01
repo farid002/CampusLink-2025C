@@ -150,6 +150,11 @@ def ensure_forum_schema() -> None:
         # Backfill pinned from is_pinned (one-way safe backfill).
         db.execute("UPDATE forum_topics SET pinned = COALESCE(pinned, is_pinned) WHERE pinned IS NULL OR pinned = 0;")
 
+    # Add views column if missing.
+    if "views" not in cols:
+        db.execute("ALTER TABLE forum_topics ADD COLUMN views INTEGER NOT NULL DEFAULT 0;")
+        cols.append("views")
+
     # Indexes (recommended/required by assignment).
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_forum_topics_pinned_created_at ON forum_topics(pinned, created_at);"
@@ -159,6 +164,62 @@ def ensure_forum_schema() -> None:
     )
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_forum_reactions_topic_id ON forum_topic_reactions(topic_id, id);"
+    )
+
+    # Workshop 2 - Forum TTS: forum_summaries (cache summaries by source_hash+lang)
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS forum_summaries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            topic_id INTEGER NOT NULL,
+            reply_id INTEGER NOT NULL DEFAULT 0,
+            source_hash TEXT NOT NULL,
+            lang TEXT NOT NULL DEFAULT 'az',
+            summary_text TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(kind, topic_id, reply_id, source_hash, lang)
+        );
+        CREATE INDEX IF NOT EXISTS idx_forum_summaries_source ON forum_summaries(source_hash, lang);
+        """
+    )
+
+    # Workshop 2 - Forum TTS: ForumAudio table (reply_id=0 for topic-level audio)
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS forum_audio (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            topic_id INTEGER NOT NULL,
+            reply_id INTEGER NOT NULL DEFAULT 0,
+            voice TEXT NOT NULL DEFAULT 'alloy',
+            lang TEXT NOT NULL DEFAULT 'az',
+            summary_hash TEXT NOT NULL,
+            source_hash TEXT NOT NULL,
+            summary_text TEXT,
+            file_path TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(kind, topic_id, reply_id, voice, lang, source_hash)
+        );
+        CREATE INDEX IF NOT EXISTS idx_forum_audio_topic ON forum_audio(topic_id);
+        CREATE INDEX IF NOT EXISTS idx_forum_audio_source ON forum_audio(source_hash);
+        """
+    )
+
+    # Forum AI: cache for ask/lazy_summary
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS forum_ai_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic_id INTEGER NOT NULL,
+            cache_type TEXT NOT NULL,
+            cache_key TEXT NOT NULL,
+            result_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(topic_id, cache_type, cache_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_forum_ai_cache_topic ON forum_ai_cache(topic_id);
+        """
     )
 
     db.commit()
@@ -262,8 +323,40 @@ def list_topics():
 
     db = get_db()
     topics = db.execute(sql, params).fetchall()
+    topics = [dict(t) for t in topics]
 
     topic_ids = [t["id"] for t in topics]
+    # Aggregated metadata: replies count, last activity (date + author)
+    meta_by_topic = {}
+    if topic_ids:
+        placeholders = ",".join(["?"] * len(topic_ids))
+        meta_rows = db.execute(
+            f"""
+            SELECT r.topic_id, COUNT(*) AS reply_count, MAX(r.created_at) AS last_activity_at
+            FROM forum_replies r
+            WHERE r.topic_id IN ({placeholders})
+            GROUP BY r.topic_id
+            """,
+            topic_ids,
+        ).fetchall()
+        for m in meta_rows:
+            m = dict(m)
+            aid = db.execute(
+                "SELECT author FROM forum_replies WHERE topic_id = ? ORDER BY created_at DESC, id DESC LIMIT 1",
+                (m["topic_id"],),
+            ).fetchone()
+            m["last_activity_author"] = aid["author"] if aid else ""
+            meta_by_topic[m["topic_id"]] = m
+    # Topics with no replies: use topic created_at and author
+    for t in topics:
+        tid = t["id"]
+        if tid not in meta_by_topic:
+            meta_by_topic[tid] = {
+                "reply_count": 0,
+                "last_activity_at": t["created_at"],
+                "last_activity_author": t["author"],
+            }
+
     reactions_by_topic = {}
     if topic_ids:
         placeholders = ",".join(["?"] * len(topic_ids))
@@ -277,6 +370,7 @@ def list_topics():
     return render_template(
         "forum/forum_list.html",
         topics=topics,
+        meta_by_topic=meta_by_topic,
         q=q,
         is_admin=_is_admin(),
         is_logged_in=_is_logged_in(),
@@ -345,6 +439,13 @@ def detail(topic_id: int):
     topic = db.execute("SELECT * FROM forum_topics WHERE id = ?", (topic_id,)).fetchone()
     if not topic:
         return render_template("404.html"), 404
+
+    # Increment views on GET (topic detail view)
+    if request.method == "GET":
+        cols = [r["name"] for r in db.execute("PRAGMA table_info(forum_topics)").fetchall()]
+        if "views" in cols:
+            db.execute("UPDATE forum_topics SET views = COALESCE(views, 0) + 1 WHERE id = ?", (topic_id,))
+            db.commit()
 
     if request.method == "POST":
         if not _is_logged_in():

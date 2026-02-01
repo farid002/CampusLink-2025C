@@ -17,15 +17,43 @@
     </div>
   </div>
 
-  <div class="card mb-3">
-    <div class="card-body">
-      <div style="white-space: pre-wrap;">{{ topic["content"] }}</div>
+  <div class="row g-3 mb-3">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle text-muted mb-2">Content</h6>
+          <div style="white-space: pre-wrap;">{{ topic["content"] }}</div>
+        </div>
+      </div>
     </div>
-  </div>
-
-  <div class="mb-3">
-    <h5>Workshop 2 - AI/ML Funksiyaları</h5>
-    <a href="{{ url_for('forum_tts.tts_topic', topic_id=topic['id']) }}" class="btn btn-outline-primary">🔊 TTS (Mövzu səsə çevirmə)</a>
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle text-muted mb-2">Summary</h6>
+          <button type="button" id="topic-summarize-btn" class="btn btn-sm btn-outline-secondary mb-2" data-topic-id="{{ topic['id'] }}">Summarize</button>
+          <div id="topic-summary-area" class="small bg-light rounded p-2 mb-2" style="display: none; white-space: pre-wrap;"></div>
+          <span id="topic-summarize-loading" class="text-muted small" style="display: none;">Generating…</span>
+          <span id="topic-summarize-error" class="text-danger small" style="display: none;"></span>
+          <hr class="my-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+            <select id="topic-tts-voice" class="form-select form-select-sm" style="max-width: 120px;">
+              <option value="alloy">alloy</option>
+              <option value="echo">echo</option>
+              <option value="fable">fable</option>
+              <option value="onyx">onyx</option>
+              <option value="nova">nova</option>
+              <option value="shimmer">shimmer</option>
+            </select>
+            <button type="button" id="topic-tts-btn" class="btn btn-sm btn-outline-primary" data-topic-id="{{ topic['id'] }}">Generate TTS</button>
+          </div>
+          <span id="topic-tts-loading" class="text-muted small" style="display: none;">Generating audio…</span>
+          <span id="topic-tts-error" class="text-danger small" style="display: none;"></span>
+          <div id="topic-tts-player" class="mt-2" style="display: none;">
+            <audio id="topic-audio" controls class="w-100" style="max-width: 100%;"></audio>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
@@ -77,15 +105,51 @@
     {% endif %}
   </div>
 
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="card-subtitle text-muted mb-2">Ask AI</h6>
+      <textarea id="ask-question" class="form-control mb-2" rows="2" placeholder="Ask a question about this thread..."></textarea>
+      <div class="d-flex gap-2 flex-wrap align-items-center">
+        <button type="button" id="ask-ai-btn" class="btn btn-sm btn-outline-primary" data-topic-id="{{ topic['id'] }}">Ask AI</button>
+        <button type="button" id="lazy-summary-btn" class="btn btn-sm btn-outline-secondary" data-topic-id="{{ topic['id'] }}">Lazy Summary</button>
+        <span id="ask-loading" class="text-muted small" style="display: none;">Generating…</span>
+        <span id="ask-error" class="text-danger small" style="display: none;"></span>
+      </div>
+      <div id="ask-answer-area" class="mt-2 small bg-light rounded p-2" style="display: none;"></div>
+      <div id="ask-sources-area" class="mt-1 small" style="display: none;"></div>
+    </div>
+  </div>
+
   <h5 class="mb-3">Replies</h5>
   {% for r in replies %}
-    <div class="card mb-2">
+    <div class="card mb-2 reply-card" id="reply-{{ r['id'] }}" data-reply-id="{{ r['id'] }}" data-topic-id="{{ topic['id'] }}">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <strong>{{ r["author"] }}</strong>
-          <span class="text-muted small">{{ r["created_at"] }}</span>
+        <div class="row g-2">
+          <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-start">
+              <strong>{{ r["author"] }}</strong>
+              <span class="text-muted small">{{ r["created_at"] }}</span>
+            </div>
+            <div class="mt-2" style="white-space: pre-wrap;">{{ r["content"] }}</div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border-top border-lg-top-0 border-lg-start pt-2 ps-lg-2">
+              <h6 class="small text-muted mb-1">Summary</h6>
+              <button type="button" class="btn btn-sm btn-outline-secondary reply-summarize-btn" data-topic-id="{{ topic['id'] }}" data-reply-id="{{ r['id'] }}">Summarize</button>
+              <div class="reply-summary-area small bg-light rounded p-2 mt-1 mb-1" style="display: none; white-space: pre-wrap;"></div>
+              <span class="reply-summarize-loading text-muted small" style="display: none;">Generating…</span>
+              <span class="reply-summarize-error text-danger small" style="display: none;"></span>
+              <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary reply-tts-btn" data-topic-id="{{ topic['id'] }}" data-reply-id="{{ r['id'] }}">TTS</button>
+                <span class="reply-tts-loading text-muted small" style="display: none;">Generating audio…</span>
+                <span class="reply-tts-error text-danger small" style="display: none;"></span>
+              </div>
+              <div class="reply-tts-player mt-1" style="display: none;">
+                <audio class="reply-audio" controls style="max-width: 100%;"></audio>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mt-2" style="white-space: pre-wrap;">{{ r["content"] }}</div>
       </div>
     </div>
   {% else %}
@@ -107,4 +171,290 @@
       <a class="alert-link" href="{{ url_for('forum.login', next=next_url) }}">Login</a>
     </div>
   {% endif %}
+
+  <script>
+    (function() {
+      var topicVoice = document.getElementById('topic-tts-voice');
+      function getVoice() { return topicVoice ? topicVoice.value : 'alloy'; }
+
+      // Topic Summarize
+      var topicSummarizeBtn = document.getElementById('topic-summarize-btn');
+      if (topicSummarizeBtn) {
+        topicSummarizeBtn.addEventListener('click', function() {
+          var topicId = topicSummarizeBtn.dataset.topicId;
+          var loading = document.getElementById('topic-summarize-loading');
+          var errSpan = document.getElementById('topic-summarize-error');
+          var summaryArea = document.getElementById('topic-summary-area');
+
+          topicSummarizeBtn.disabled = true;
+          loading.style.display = 'inline';
+          errSpan.style.display = 'none';
+          errSpan.textContent = '';
+
+          fetch('/forum/' + topicId + '/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            topicSummarizeBtn.disabled = false;
+            loading.style.display = 'none';
+            if (data.ok) {
+              summaryArea.textContent = data.summary || '';
+              summaryArea.style.display = 'block';
+            } else {
+              errSpan.textContent = data.error || 'An error occurred.';
+              errSpan.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            topicSummarizeBtn.disabled = false;
+            loading.style.display = 'none';
+            errSpan.textContent = 'An error occurred. Please try again.';
+            errSpan.style.display = 'inline';
+          });
+        });
+      }
+
+      // Topic TTS
+      var topicTtsBtn = document.getElementById('topic-tts-btn');
+      var topicTtsLoading = document.getElementById('topic-tts-loading');
+      var topicTtsError = document.getElementById('topic-tts-error');
+      var topicPlayer = document.getElementById('topic-tts-player');
+      var topicAudio = document.getElementById('topic-audio');
+      var topicSummaryArea = document.getElementById('topic-summary-area');
+
+      if (topicTtsBtn) {
+        topicTtsBtn.addEventListener('click', function() {
+          var topicId = topicTtsBtn.dataset.topicId;
+          topicTtsBtn.disabled = true;
+          topicTtsLoading.style.display = 'inline';
+          topicTtsError.style.display = 'none';
+          topicTtsError.textContent = '';
+
+          fetch('/forum/' + topicId + '/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voice: getVoice(), lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            topicTtsBtn.disabled = false;
+            topicTtsLoading.style.display = 'none';
+            if (data.ok) {
+              if (data.summary && topicSummaryArea && !topicSummaryArea.textContent) {
+                topicSummaryArea.textContent = data.summary;
+                topicSummaryArea.style.display = 'block';
+              }
+              topicPlayer.style.display = 'block';
+              topicAudio.src = data.audio_url;
+              topicAudio.play().catch(function() {});
+            } else {
+              topicTtsError.textContent = data.error || 'An error occurred.';
+              topicTtsError.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            topicTtsBtn.disabled = false;
+            topicTtsLoading.style.display = 'none';
+            topicTtsError.textContent = 'An error occurred. Please try again.';
+            topicTtsError.style.display = 'inline';
+          });
+        });
+      }
+
+      // Reply Summarize
+      document.querySelectorAll('.reply-summarize-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var topicId = btn.dataset.topicId;
+          var replyId = btn.dataset.replyId;
+          var card = btn.closest('.reply-card');
+          var loading = card.querySelector('.reply-summarize-loading');
+          var errSpan = card.querySelector('.reply-summarize-error');
+          var summaryArea = card.querySelector('.reply-summary-area');
+
+          btn.disabled = true;
+          loading.style.display = 'inline';
+          errSpan.style.display = 'none';
+          errSpan.textContent = '';
+
+          fetch('/forum/' + topicId + '/reply/' + replyId + '/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            if (data.ok) {
+              summaryArea.textContent = data.summary || '';
+              summaryArea.style.display = 'block';
+            } else {
+              errSpan.textContent = data.error || 'An error occurred.';
+              errSpan.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            errSpan.textContent = 'An error occurred. Please try again.';
+            errSpan.style.display = 'inline';
+          });
+        });
+      });
+
+      // Ask AI
+      var askBtn = document.getElementById('ask-ai-btn');
+      var lazyBtn = document.getElementById('lazy-summary-btn');
+      var askQuestion = document.getElementById('ask-question');
+      var askLoading = document.getElementById('ask-loading');
+      var askError = document.getElementById('ask-error');
+      var askAnswerArea = document.getElementById('ask-answer-area');
+      var askSourcesArea = document.getElementById('ask-sources-area');
+
+      if (askBtn) {
+        askBtn.addEventListener('click', function() {
+          var topicId = askBtn.dataset.topicId;
+          var question = askQuestion ? askQuestion.value.trim() : '';
+          if (!question) {
+            askError.textContent = 'Please enter a question.';
+            askError.style.display = 'inline';
+            return;
+          }
+          askBtn.disabled = true;
+          lazyBtn.disabled = true;
+          askLoading.style.display = 'inline';
+          askError.style.display = 'none';
+          askError.textContent = '';
+          askAnswerArea.style.display = 'none';
+          askSourcesArea.style.display = 'none';
+
+          fetch('/forum/' + topicId + '/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question, lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            askBtn.disabled = false;
+            lazyBtn.disabled = false;
+            askLoading.style.display = 'none';
+            if (data.ok) {
+              askAnswerArea.textContent = data.answer || '';
+              askAnswerArea.style.display = 'block';
+              if (data.sources && data.sources.length) {
+                var links = data.sources.map(function(id) {
+                  return '<a href="#reply-' + id + '" class="badge bg-secondary me-1">#' + id + '</a>';
+                }).join('');
+                askSourcesArea.innerHTML = 'Sources: ' + links;
+                askSourcesArea.style.display = 'block';
+              } else {
+                askSourcesArea.style.display = 'none';
+              }
+            } else {
+              askError.textContent = data.error || 'An error occurred.';
+              askError.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            askBtn.disabled = false;
+            lazyBtn.disabled = false;
+            askLoading.style.display = 'none';
+            askError.textContent = 'An error occurred. Please try again.';
+            askError.style.display = 'inline';
+          });
+        });
+      }
+
+      if (lazyBtn) {
+        lazyBtn.addEventListener('click', function() {
+          var topicId = lazyBtn.dataset.topicId;
+          lazyBtn.disabled = true;
+          askBtn.disabled = true;
+          askLoading.style.display = 'inline';
+          askError.style.display = 'none';
+          askError.textContent = '';
+          askAnswerArea.style.display = 'none';
+          askSourcesArea.style.display = 'none';
+
+          fetch('/forum/' + topicId + '/lazy_summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            lazyBtn.disabled = false;
+            askBtn.disabled = false;
+            askLoading.style.display = 'none';
+            if (data.ok) {
+              askAnswerArea.textContent = data.summary || '';
+              askAnswerArea.style.display = 'block';
+              askSourcesArea.style.display = 'none';
+            } else {
+              askError.textContent = data.error || 'An error occurred.';
+              askError.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            lazyBtn.disabled = false;
+            askBtn.disabled = false;
+            askLoading.style.display = 'none';
+            askError.textContent = 'An error occurred. Please try again.';
+            askError.style.display = 'inline';
+          });
+        });
+      }
+
+      // Reply TTS
+      document.querySelectorAll('.reply-tts-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var topicId = btn.dataset.topicId;
+          var replyId = btn.dataset.replyId;
+          var card = btn.closest('.reply-card');
+          var loading = card.querySelector('.reply-tts-loading');
+          var errSpan = card.querySelector('.reply-tts-error');
+          var player = card.querySelector('.reply-tts-player');
+          var audio = card.querySelector('.reply-audio');
+          var summaryArea = card.querySelector('.reply-summary-area');
+
+          btn.disabled = true;
+          loading.style.display = 'inline';
+          errSpan.style.display = 'none';
+          errSpan.textContent = '';
+
+          fetch('/forum/' + topicId + '/reply/' + replyId + '/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ voice: getVoice(), lang: 'az' })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            if (data.ok) {
+              if (data.summary && summaryArea && !summaryArea.textContent) {
+                summaryArea.textContent = data.summary;
+                summaryArea.style.display = 'block';
+              }
+              player.style.display = 'block';
+              audio.src = data.audio_url;
+              audio.play().catch(function() {});
+            } else {
+              errSpan.textContent = data.error || 'An error occurred.';
+              errSpan.style.display = 'inline';
+            }
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            loading.style.display = 'none';
+            errSpan.textContent = 'An error occurred. Please try again.';
+            errSpan.style.display = 'inline';
+          });
+        });
+      });
+    })();
+  </script>
 {% endblock %}
