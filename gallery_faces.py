@@ -13,6 +13,7 @@ import datetime
 import json
 import base64
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -30,64 +31,75 @@ def get_gpt_api_key():
 def detect_faces_with_gpt_vision(image_path: str) -> int:
     """
     GPT Vision API ilə şəkillərdə üzləri tapır.
-    
-    TODO: Tələbə bu funksiyanı implement etməlidir:
-    1. Şəkili base64-ə çevir
-    2. OpenAI client yarat
-    3. GPT Vision API çağırışı et (gpt-4o-mini model)
-    4. Üz sayını al
-    5. Rəqəmi qaytar
-    
-    Nümunə prompt:
-    "Bu şəkildə neçə üz var? Yalnız rəqəm qaytar (məsələn: 0, 1, 2, 3 və s.)."
+    Şəkili base64-ə çevirir, GPT Vision API çağırır, üz sayını parse edir.
     """
-    # TODO: Tələbə burada kod yazmalıdır
-    return 0
+    if not os.path.isfile(image_path):
+        return 0
+
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+    base64_image = base64.b64encode(image_data).decode("utf-8")
+
+    ext = os.path.splitext(image_path)[1].lower()
+    mime = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png" if ext == ".png" else "image/jpeg"
+    image_url = f"data:{mime};base64,{base64_image}"
+
+    api_key = get_gpt_api_key()
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Bu şəkildə neçə insan üzü var? Yalnız rəqəm qaytar (0, 1, 2, 3 və s.). Heç bir mətn yazma."},
+                    {"type": "image_url", "image_url": {"url": image_url}}
+                ]
+            }],
+            max_tokens=20
+        )
+        content = (response.choices[0].message.content or "").strip()
+        numbers = re.findall(r"\d+", content)
+        return int(numbers[0]) if numbers else 0
+    except Exception as e:
+        raise ValueError(f"GPT Vision API xətası: {str(e)}")
 
 def generate_description_with_gpt(face_count: int) -> tuple:
     """
     GPT Chat API istifadə edərək şəkil təsviri və teqlər yaradır.
-    
-    TODO: Tələbə bu funksiyanı implement etməlidir:
-    1. OpenAI client yarat
-    2. Prompt hazırla (üz sayına əsasən təsvir və teqlər)
-    3. API çağırışı et (gpt-3.5-turbo model)
-    4. Təsvir və teqləri parse et
-    5. Tuple kimi qaytar (description, tags)
-    
-    Nümunə prompt:
-    "Bu şəkildə {face_count} üz var. Şəkil haqqında qısa təsvir və 5 teq yarat. Format: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
+    Üz sayına əsasən prompt hazırlayır, təsvir və teqləri parse edir.
     """
     api_key = get_gpt_api_key()
-    
-    # TODO: Tələbə burada kod yazmalıdır
-    # from openai import OpenAI
-    # client = OpenAI(api_key=api_key)
-    # if face_count == 0:
-    #     prompt = "Bu şəkildə üz yoxdur. Şəkil haqqında qısa təsvir və 5 teq yarat. Format: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
-    # elif face_count == 1:
-    #     prompt = "Bu şəkildə 1 üz var. Şəkil haqqında qısa təsvir və 5 teq yarat. Format: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
-    # else:
-    #     prompt = f"Bu şəkildə {face_count} üz var. Şəkil haqqında qısa təsvir və 5 teq yarat. Format: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
-    # response = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.7,
-    #     max_tokens=200
-    # )
-    # content = response.choices[0].message.content.strip()
-    # # Parse description and tags
-    # if "|" in content:
-    #     parts = content.split("|", 1)
-    #     description = parts[0].replace("Təsvir:", "").strip()
-    #     tags_part = parts[1].replace("Teqlər:", "").strip()
-    #     tags = tags_part
-    # else:
-    #     description = content
-    #     tags = "şəkil, foto"
-    # return description, tags
-    
-    return "TODO: GPT API çağırışı implement edilməlidir", "TODO"
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+
+    if face_count == 0:
+        prompt = "Bu şəkildə üz yoxdur. Şəkil haqqında qısa təsvir və 5 teq yarat. Cavabı mütləq bu formatta ver: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
+    elif face_count == 1:
+        prompt = "Bu şəkildə 1 üz var. Şəkil haqqında qısa təsvir və 5 teq yarat. Cavabı mütləq bu formatta ver: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
+    else:
+        prompt = f"Bu şəkildə {face_count} üz var. Şəkil haqqında qısa təsvir və 5 teq yarat. Cavabı mütləq bu formatta ver: Təsvir: ... | Teqlər: tag1, tag2, tag3, tag4, tag5"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=200
+        )
+        content = (response.choices[0].message.content or "").strip()
+        if "|" in content:
+            parts = content.split("|", 1)
+            description = parts[0].replace("Təsvir:", "").strip()
+            tags = parts[1].replace("Teqlər:", "").strip()
+        else:
+            description = content
+            tags = "şəkil, foto"
+        return description or "Təsvir yoxdur.", tags or "şəkil"
+    except Exception as e:
+        raise ValueError(f"GPT Chat API xətası: {str(e)}")
 
 @bp.route("/<int:image_id>/faces", methods=["GET", "POST"])
 def faces_detect(image_id: int):
