@@ -8,13 +8,24 @@ sonra GPT Chat API ilə mətni təmizləyir və təkmilləşdirir.
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from database import get_db
+from openai import APIError, OpenAI, RateLimitError
 import os
 import datetime
 import secrets
 import base64
 from dotenv import load_dotenv
 
-load_dotenv()
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+load_dotenv(_env_path)
+
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+EXT_TO_MIME = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "webp": "image/webp",
+}
 
 bp = Blueprint("blog_ocr", __name__, url_prefix="/blog")
 
@@ -30,66 +41,56 @@ def get_gpt_api_key():
 def extract_text_with_gpt_vision(image_path: str) -> str:
     """
     GPT Vision API ilə şəkilərdən mətn çıxarır.
-    
-    TODO: Tələbə bu funksiyanı implement etməlidir:
-    1. Şəkili base64-ə çevir
-    2. OpenAI client yarat
-    3. GPT Vision API çağırışı et (gpt-4o-mini model)
-    4. Şəkildəki mətni çıxar
-    5. Cavabı qaytar
-    
-    Nümunə:
-    import base64
-    from openai import OpenAI
-    
-    with open(image_path, "rb") as image_file:
-        image_base64 = base64.b64encode(image_file.read()).decode('utf-8')
-    
-    client = OpenAI(api_key=get_gpt_api_key())
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "Bu şəkildəki bütün mətni çıxar. Mətni dəqiq və tam şəkildə qaytar."},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
-            ]
-        }],
-        max_tokens=1000
-    )
-    return response.choices[0].message.content.strip()
     """
-    # TODO: Tələbə burada kod yazmalıdır
-    return "TODO: GPT Vision API çağırışı implement edilməlidir"
+    with open(image_path, "rb") as image_file:
+        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+
+    ext = (os.path.splitext(image_path)[1] or "").lower().lstrip(".") or "jpg"
+    mime = EXT_TO_MIME.get(ext, "image/jpeg")
+    data_url = f"data:{mime};base64,{image_base64}"
+
+    try:
+        client = OpenAI(api_key=get_gpt_api_key())
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Extract all text from this image. Return the text accurately and completely."},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ],
+            }],
+            max_tokens=1000,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        return text if text else "No text found"
+    except (RateLimitError, APIError):
+        raise
+    except Exception as e:
+        raise ValueError(f"GPT Vision API error: {str(e)}")
 
 def improve_text_with_gpt(extracted_text: str) -> str:
     """
     GPT Chat API istifadə edərək OCR mətnini təmizləyir və təkmilləşdirir.
-    
-    TODO: Tələbə bu funksiyanı implement etməlidir:
-    1. OpenAI client yarat
-    2. Prompt hazırla (OCR nəticəsini təmizləmə üçün)
-    3. API çağırışı et (gpt-3.5-turbo model)
-    4. Cavabı qaytar
-    
-    Nümunə prompt:
-    "Bu OCR nəticəsini təmizlə, səhvləri düzəlt və strukturlaşdır:\n\n{extracted_text}"
     """
-    api_key = get_gpt_api_key()
-    
-    # TODO: Tələbə burada kod yazmalıdır
-    # from openai import OpenAI
-    # client = OpenAI(api_key=api_key)
-    # prompt = f"Bu OCR nəticəsini təmizlə, səhvləri düzəlt və strukturlaşdır. Mətni daha oxunaqlı et, amma məzmunu dəyişmə:\n\n{extracted_text}"
-    # response = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.3,
-    #     max_tokens=1000
-    # )
-    # return response.choices[0].message.content.strip()
-    
-    return "TODO: GPT API çağırışı implement edilməlidir"
+    prompt = (
+        "Clean this OCR result, fix errors, and structure it. "
+        "Make it readable but do not change the content.\n\n"
+        f"{extracted_text}"
+    )
+    try:
+        client = OpenAI(api_key=get_gpt_api_key())
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=1000,
+        )
+        return (response.choices[0].message.content or "").strip()
+    except (RateLimitError, APIError):
+        raise
+    except Exception as e:
+        raise ValueError(f"GPT Chat API error: {str(e)}")
 
 @bp.route("/<int:post_id>/ocr", methods=["GET", "POST"])
 def ocr_extract(post_id: int):
@@ -117,11 +118,14 @@ def ocr_extract(post_id: int):
             flash("Şəkil faylı seçilməyib.", "error")
             return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
         
-        # Şəkili yüklə
-        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+        ext = (file.filename.rsplit(".", 1)[1].lower() if "." in file.filename else "jpg")
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            flash("İcazə verilən formatlar: JPG, JPEG, PNG, GIF, WEBP.", "error")
+            return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
+
         filename = f"{secrets.token_hex(8)}.{ext}"
         image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-        
+
         try:
             file.save(image_path)
             
@@ -146,6 +150,12 @@ def ocr_extract(post_id: int):
         except ValueError as e:
             flash(f"Xəta: {str(e)}", "error")
             return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
+        except RateLimitError:
+            flash("API limiti aşıldı. Bir az gözləyin və yenidən cəhd edin.", "error")
+            return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
+        except APIError as e:
+            flash(f"OpenAI API xətası: {str(e)}", "error")
+            return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
         except Exception as e:
             flash(f"Gözlənilməz xəta: {str(e)}", "error")
             return redirect(url_for("blog_ocr.ocr_extract", post_id=post_id))
@@ -165,5 +175,36 @@ def ocr_result(post_id: int, result_id: int):
     result = cursor.fetchone()
     if not result:
         return render_template("404.html"), 404
-    
+
     return render_template("blog/ocr_result.html", result=dict(result), post_id=post_id)
+
+
+@bp.route("/<int:post_id>/ocr/<int:result_id>/apply", methods=["POST"])
+def ocr_apply_to_post(post_id: int, result_id: int):
+    """
+    Təkmilləşdirilmiş mətni blog yazısının məzmununa tətbiq edir.
+    """
+    db = get_db()
+    cursor = db.execute(
+        "SELECT * FROM blog_ocr_results WHERE id = ? AND post_id = ?",
+        (result_id, post_id)
+    )
+    result = cursor.fetchone()
+    if not result:
+        flash("OCR nəticəsi tapılmadı.", "error")
+        return redirect(url_for("blog.detail", post_id=post_id))
+
+    improved_text = (result["improved_text"] or "").strip()
+    if not improved_text:
+        flash("Təkmilləşdirilmiş mətn boşdur.", "error")
+        return redirect(url_for("blog_ocr.ocr_result", post_id=post_id, result_id=result_id))
+
+    cursor = db.execute("SELECT id FROM blog_posts WHERE id = ?", (post_id,))
+    if not cursor.fetchone():
+        flash("Blog yazısı tapılmadı.", "error")
+        return redirect(url_for("blog.list_posts"))
+
+    db.execute("UPDATE blog_posts SET content = ? WHERE id = ?", (improved_text, post_id))
+    db.commit()
+    flash("Yazı məzmunu təkmilləşdirilmiş mətnlə yeniləndi.", "success")
+    return redirect(url_for("blog.detail", post_id=post_id))

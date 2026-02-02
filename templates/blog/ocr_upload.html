@@ -14,13 +14,33 @@
             <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
             <div class="form-text">PNG, JPG, JPEG formatları dəstəklənir</div>
           </div>
-          <button type="submit" class="btn btn-primary">OCR işlədir</button>
-          <a href="{{ url_for('blog.detail', post_id=post['id']) }}" class="btn btn-secondary">Geri</a>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <button type="submit" class="btn btn-primary" id="ocr-submit-btn">OCR işlədir</button>
+            <span class="ocr-loading text-muted d-none" id="ocr-loading" aria-hidden="true">
+              <span class="spinner-border spinner-border-sm" role="status"></span> Yüklənir...
+            </span>
+            <a href="{{ url_for('blog.detail', post_id=post['id']) }}" class="btn btn-secondary">Geri</a>
+          </div>
         </form>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+{% block page_scripts %}
+<script>
+(function () {
+  var form = document.querySelector('form[enctype="multipart/form-data"]');
+  var btn = document.getElementById('ocr-submit-btn');
+  var loading = document.getElementById('ocr-loading');
+  if (form && btn && loading) {
+    form.addEventListener('submit', function () {
+      btn.disabled = true;
+      loading.classList.remove('d-none');
+    });
+  }
+})();
+</script>
 {% endblock %}
 
 

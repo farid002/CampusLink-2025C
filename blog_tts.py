@@ -13,7 +13,8 @@ import datetime
 import secrets
 from dotenv import load_dotenv
 
-load_dotenv()
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+load_dotenv(_env_path)
 
 bp = Blueprint("blog_tts", __name__, url_prefix="/blog")
 
